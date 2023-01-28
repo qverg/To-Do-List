@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from calendar import monthrange
 import os.path
+import json
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
 TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/data/to_do_items"
+SETTINGS_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_settings.json"
 INVALID_YEAR = 9999
 
 COLUMN_LENGTHS = (3, 49, 25, 25, 12)
@@ -474,6 +476,14 @@ def run_to_do_list():
         to_do_list.save()
 
 if __name__ == '__main__':
+    # create save file if doesn't exist
     f = open(TO_DO_ITEMS_SAVE_FILE, "w")
     f.close()
+
+    # load settings
+    with open(SETTINGS_FILE, "r") as settings_file:
+        settings = json.load(settings_file)
+        COLUMN_LENGTHS = tuple(settings["column_widths_in_characters"])
+        PADDING = settings["column_padding_in_characters"]
+
     run_to_do_list()
