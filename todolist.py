@@ -474,4 +474,6 @@ def run_to_do_list():
         to_do_list.save()
 
 if __name__ == '__main__':
+    f = open(TO_DO_ITEMS_SAVE_FILE, "w")
+    f.close()
     run_to_do_list()
