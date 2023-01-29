@@ -481,9 +481,15 @@ if __name__ == '__main__':
     f.close()
 
     # load settings
-    with open(SETTINGS_FILE, "r") as settings_file:
-        settings = json.load(settings_file)
-        COLUMN_LENGTHS = tuple(settings["column_widths_in_characters"])
-        PADDING = settings["column_padding_in_characters"]
-
+    try:
+        with open(SETTINGS_FILE, "r") as settings_file:
+            settings = json.load(settings_file)
+            try:
+                COLUMN_LENGTHS = tuple(settings["column_widths_in_characters"])
+                PADDING = settings["column_padding_in_characters"]
+            except KeyError:
+                pass
+    except FileNotFoundError:
+        pass
+    print(COLUMN_LENGTHS, PADDING)
     run_to_do_list()
