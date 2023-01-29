@@ -477,7 +477,7 @@ def run_to_do_list():
 
 if __name__ == '__main__':
     # create save file if doesn't exist
-    f = open(TO_DO_ITEMS_SAVE_FILE, "w")
+    f = open(TO_DO_ITEMS_SAVE_FILE, "a")
     f.close()
 
     # load settings
