@@ -492,4 +492,4 @@ if __name__ == '__main__':
     except FileNotFoundError:
         pass
     print(COLUMN_LENGTHS, PADDING)
-    #run_to_do_list()
+    run_to_do_list()
