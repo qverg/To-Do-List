@@ -32,6 +32,7 @@ HELP_STRING = """Commands:
     > 'q'               Quit
       'quit'
       'exit'
+    > 'lang [language]' Change language (requires todolist_lang.json)
 
 For dates you can use:
  - Day of the week          'saturday'  'sat'
