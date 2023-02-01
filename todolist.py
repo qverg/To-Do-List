@@ -7,7 +7,7 @@ import sys
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
-TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/data/to_do_items"
+TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/to_do_items"
 SETTINGS_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_settings.json"
 LANG_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_lang.json"
 INVALID_YEAR = 9999
@@ -49,22 +49,23 @@ Possible recurrences are:
 """
 
 LANGUAGE = "English"
-Communication = {}
-
-""" class Communication:
-    description = "Description: "
-    do_date = "Do date:     "
-    due_date = "Due date:    "
-    recurrence = "Recurrence:  "
-    invalid_recurrence_valid = "Invalid recurrence. Valid:"
-    item_does_not_exist = "Item does not exist."
-    do = "DO  "
-    today = "Today!"
-    has_passed = "Has passed!"
-    due = "DUE "
-    overdue = "OVERDUE!"
-    recurs = "Recurs"
-    ID = "ID" """
+Communication = {
+    "Description: " : "Description: ",
+    "Do date:     " : "Do date:     ",
+    "Due date:     " : "Due date:     ",
+    "Recurrence:  " : "Recurrence:  ",
+    "Invalid recurrence. Valid:" : "Invalid recurrence. Valid:",
+    "Item does not exist." : "Item does not exist.",
+    "Today!" : "Today!",
+    "Has passed!" : "Has passed!",
+    "OVERDUE!" : "OVERDUE!",
+    "ID" : "ID",
+    "Are you sure? This cannot be undone. " : "Are you sure? This cannot be undone. ",
+    "weekly" : "weekly",
+    "monthly" : "monthly",
+    "daily" : "daily",
+    "Language not found." : "Language not found."
+}
 
 class TextFormatting:
     @staticmethod
@@ -110,6 +111,12 @@ class Recurrence:
     MONTHLY = 2
     DAILY = 3
 
+    to_timedelta = {
+        WEEKLY : timedelta(weeks=1),
+        MONTHLY : timedelta(days=monthrange(date.today().year, date.today().month)[1]),
+        DAILY : timedelta(days=1)
+    }
+
     @staticmethod
     def from_text(rec_in: str):
         if rec_in == Communication["weekly"] : return Recurrence.WEEKLY
@@ -117,17 +124,11 @@ class Recurrence:
         if rec_in == Communication["daily"] : return Recurrence.DAILY
         return None
 
+    @staticmethod
     def get_valid():
         return Communication["weekly"], Communication["monthly"], Communication["daily"], "None", ""
 
-    """ from_text = {
-        Communication["weekly"] : WEEKLY,
-        Communication["monthly"] : MONTHLY,
-        Communication["daily"] : DAILY,
-        "" : None,
-        "None" : None
-    } """
-
+    @staticmethod
     def to_text(rec_in):
         match rec_in:
             case Recurrence.WEEKLY : return Communication["weekly"]
@@ -135,18 +136,7 @@ class Recurrence:
             case Recurrence.DAILY : return Communication["daily"]
         return "None"
 
-    """ to_text = {
-        WEEKLY : Communication["weekly"],
-        MONTHLY : Communication["monthly"],
-        DAILY : Communication["daily"],
-        None : "None"
-    } """
 
-    to_timedelta = {
-        WEEKLY : timedelta(weeks=1),
-        MONTHLY : timedelta(days=monthrange(date.today().year, date.today().month)[1]),
-        DAILY : timedelta(days=1)
-    }
 
 class DateHandler:
     weekdays = {
@@ -456,9 +446,8 @@ class ToDoList:
 
 def run_to_do_list():
     global Communication
-    to_do_list = ToDoList()
 
-    last_removed: ToDoListItem = None
+    to_do_list = ToDoList()
 
     quit = False
     while not quit:
@@ -502,9 +491,10 @@ def run_to_do_list():
                     with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
                         Communication = json.load(lang_file)[command_args[1]]
 
+                except FileNotFoundError:
+                    to_do_list.log("Missing todolist_lang.json")
+
                 except KeyError:
-                    print("Ä")
-                    input()
                     to_do_list.log(Communication["Language not found."])
 
                 else:
@@ -546,5 +536,6 @@ if __name__ == '__main__':
         run_to_do_list()
 
     except FileNotFoundError:
-        print("ERROR: missing todolist_lang.json")
-        input()
+        pass
+
+    run_to_do_list()
