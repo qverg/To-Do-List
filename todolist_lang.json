@@ -2,7 +2,7 @@
     "English" : {
         "Description: " : "Description: ",
         "Do date:     " : "Do date:     ",
-        "Due date:     " : "Due date:     ",
+        "Due date:     " : "Due date:    ",
         "Recurrence:  " : "Recurrence:  ",
         "Invalid recurrence. Valid:" : "Invalid recurrence. Valid:",
         "Item does not exist." : "Item does not exist.",
@@ -20,7 +20,7 @@
     "Nederlands" : {
         "Description: " : "Omschrijving: ",
         "Do date:     " : "Doen op:     ",
-        "Due date:     " : "Tegen:      ",
+        "Due date:     " : "Tegen:       ",
         "Recurrence:  " : "Keert terug: ",
         "Invalid recurrence. Valid:" : "Ongeldig terugkeerpatroon. Geldig:",
         "Item does not exist." : "Item bestaat niet.",
