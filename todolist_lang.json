@@ -1,0 +1,55 @@
+{
+    "English" : {
+        "Description: " : "Description: ",
+        "Do date:     " : "Do date:     ",
+        "Due date:     " : "Due date:    ",
+        "Recurrence:  " : "Recurrence:  ",
+        "Invalid recurrence. Valid:" : "Invalid recurrence. Valid:",
+        "Item does not exist." : "Item does not exist.",
+        "Today!" : "Today!",
+        "Has passed!" : "Has passed!",
+        "OVERDUE!" : "OVERDUE!",
+        "ID" : "ID",
+        "Are you sure? This cannot be undone. " : "Are you sure? This cannot be undone. ",
+        "weekly" : "weekly",
+        "monthly" : "monthly",
+        "daily" : "daily",
+        "Language not found." : "Language not found."
+    },
+
+    "Nederlands" : {
+        "Description: " : "Omschrijving: ",
+        "Do date:     " : "Doen op:     ",
+        "Due date:     " : "Tegen:       ",
+        "Recurrence:  " : "Keert terug: ",
+        "Invalid recurrence. Valid:" : "Ongeldig terugkeerpatroon. Geldig:",
+        "Item does not exist." : "Item bestaat niet.",
+        "Today!" : "Vandaag!",
+        "Has passed!" : "Voorbij!",
+        "OVERDUE!" : "TE LAAT!",
+        "ID" : "ID",
+        "Are you sure? This cannot be undone. " : "Bent u zeker? Dit kan niet ongedaan worden gemaakt. ",
+        "weekly" : "wekelijks",
+        "monthly" : "maandelijks",
+        "daily" : "dagelijks",
+        "Language not found." : "Taal niet gevonden."
+    },
+
+    "Deutsch" : {
+        "Description: " : "Beschreibung:",
+        "Do date:     " : "Machen am:   ",
+        "Due date:     " : "Fällig am:   ",
+        "Recurrence:  " : "Kommt zurück:",
+        "Invalid recurrence. Valid:" : "Ungültiges Wiederkehrmotiv. Gültig:",
+        "Item does not exist." : "Element existiert nicht.",
+        "Today!" : "Heute!",
+        "Has passed!" : "Vorbei!",
+        "OVERDUE!" : "ÜBERFÄLLIG!",
+        "ID" : "ID",
+        "Are you sure? This cannot be undone. " : "Sind Sie sicher? Diese Aktion kann nicht rückgängig gemacht werden",
+        "weekly" : "wöchentlich",
+        "monthly" : "monatlich",
+        "daily" : "täglich",
+        "Language not found." : "Sprache nicht gefunden."
+    }
+}

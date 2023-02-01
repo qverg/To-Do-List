@@ -1,2 +1,3 @@
 __pycache__/
-data/to_do_items
+to_do_items
+todolist_settings.json

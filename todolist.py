@@ -3,15 +3,18 @@ from datetime import date, timedelta
 from calendar import monthrange
 import os.path
 import json
+import sys
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
-TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/data/to_do_items"
+TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/to_do_items"
 SETTINGS_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_settings.json"
+LANG_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_lang.json"
 INVALID_YEAR = 9999
 
 COLUMN_LENGTHS = (3, 49, 25, 25, 12)
 PADDING = 3
+
 
 HELP_STRING = """Commands:
     > 'add' or '+'      Add a to-do list item
@@ -29,6 +32,7 @@ HELP_STRING = """Commands:
     > 'q'               Quit
       'quit'
       'exit'
+    > 'lang [language]' Change language (requires todolist_lang.json)
 
 For dates you can use:
  - Day of the week          'saturday'  'sat'
@@ -45,20 +49,24 @@ Possible recurrences are:
 
 """
 
-class Communication:
-    description = "Description: "
-    do_date = "Do date:     "
-    due_date = "Due date:    "
-    recurrence = "Recurrence:  "
-    invalid_recurrence_valid = "Invalid recurrence. Valid:"
-    item_does_not_exist = "Item does not exist."
-    do = "DO  "
-    today = "Today!"
-    has_passed = "Has passed!"
-    due = "DUE "
-    overdue = "OVERDUE!"
-    recurs = "Recurs"
-    ID = "ID"
+LANGUAGE = "English"
+Communication = {
+    "Description: " : "Description: ",
+    "Do date:     " : "Do date:     ",
+    "Due date:     " : "Due date:     ",
+    "Recurrence:  " : "Recurrence:  ",
+    "Invalid recurrence. Valid:" : "Invalid recurrence. Valid:",
+    "Item does not exist." : "Item does not exist.",
+    "Today!" : "Today!",
+    "Has passed!" : "Has passed!",
+    "OVERDUE!" : "OVERDUE!",
+    "ID" : "ID",
+    "Are you sure? This cannot be undone. " : "Are you sure? This cannot be undone. ",
+    "weekly" : "weekly",
+    "monthly" : "monthly",
+    "daily" : "daily",
+    "Language not found." : "Language not found."
+}
 
 class TextFormatting:
     @staticmethod
@@ -104,26 +112,32 @@ class Recurrence:
     MONTHLY = 2
     DAILY = 3
 
-    from_text = {
-        "weekly" : WEEKLY,
-        "monthly" : MONTHLY,
-        "daily" : DAILY,
-        "" : None,
-        "None" : None
-    }
-
-    to_text = {
-        WEEKLY : "weekly",
-        MONTHLY : "monthly",
-        DAILY : "daily",
-        None : "None"
-    }
-
     to_timedelta = {
         WEEKLY : timedelta(weeks=1),
         MONTHLY : timedelta(days=monthrange(date.today().year, date.today().month)[1]),
         DAILY : timedelta(days=1)
     }
+
+    @staticmethod
+    def from_text(rec_in: str):
+        if rec_in == Communication["weekly"] : return Recurrence.WEEKLY
+        if rec_in == Communication["monthly"] : return Recurrence.MONTHLY
+        if rec_in == Communication["daily"] : return Recurrence.DAILY
+        return None
+
+    @staticmethod
+    def get_valid():
+        return Communication["weekly"], Communication["monthly"], Communication["daily"], "None", ""
+
+    @staticmethod
+    def to_text(rec_in):
+        match rec_in:
+            case Recurrence.WEEKLY : return Communication["weekly"]
+            case Recurrence.MONTHLY : return Communication["monthly"]
+            case Recurrence.DAILY : return Communication["daily"]
+        return "None"
+
+
 
 class DateHandler:
     weekdays = {
@@ -206,43 +220,46 @@ class ToDoListItem:
         self.description = description
         self.do_date = DateHandler.get_date_from_string(do_date_str)
         self.due_date = DateHandler.get_date_from_string(due_date_str)
-        self.recurrence = Recurrence.from_text[recurrence_str]
+        self.recurrence = Recurrence.from_text(recurrence_str)
 
     def edit(self, being_created = False):
         if being_created:
-            print(Communication.description, end=" ")
+            print(Communication["Description: "], end=" ")
             self.description = input()
-            print(Communication.do_date, end=" ")
+            print(Communication["Do date:     "], end=" ")
             self.do_date = DateHandler.get_date_from_string(input())
-            print(Communication.due_date, end=" ")
+            print(Communication["Due date:     "], end=" ")
             self.due_date = DateHandler.get_date_from_string(input())
             while True:
-                try:
-                    print(Communication.recurrence, end=" ")
-                    self.recurrence = Recurrence.from_text[input()]
+                print(Communication["Recurrence:  "], end=" ")
+                rec_in = input().strip()
+                if rec_in in Recurrence.get_valid():
+                    self.recurrence = Recurrence.from_text(rec_in)
                     break
-                except KeyError:
-                    print(Communication.invalid_recurrence_valid, *Recurrence.from_text.keys())
+                else:
+                    print(Communication["Invalid recurrence. Valid:"], *Recurrence.get_valid())
+    
         else:
-            print(Communication.description, end=" ")
+            print(Communication["Description: "], end=" ")
             str_in = input()
             self.description = str_in if str_in != "" else self.description
-            print(Communication.do_date, end=" ")
+            print(Communication["Do date:     "], end=" ")
             str_in = input()
             self.do_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.do_date
-            print(Communication.due_date, end=" ")
+            print(Communication["Due date:     "], end=" ")
             str_in = input()
             self.due_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.due_date
+
             while True:
-                try:
-                    print(Communication.recurrence, end=" ")
-                    str_in = input()
-                    if str_in == "":
-                        break
-                    self.recurrence = Recurrence.from_text[str_in]
+                print(Communication["Recurrence:  "], end=" ")
+                rec_in = input().strip()
+                if rec_in == "":
                     break
-                except KeyError:
-                    print(Communication.invalid_recurrence_valid, *Recurrence.from_text.keys())
+                if rec_in in Recurrence.get_valid():
+                    self.recurrence = Recurrence.from_text(rec_in)
+                    break
+                else:
+                    print(Communication["Invalid recurrence. Valid:"], *Recurrence.get_valid())
 
     def __str__(self):
         connective = " -- "
@@ -253,23 +270,23 @@ class ToDoListItem:
         if self.do_date.year != INVALID_YEAR:
             do_string += self.do_date.strftime(DATE_FORMAT)
             if self.do_date == date.today():
-                do_string += connective + Communication.today
+                do_string += connective + Communication["Today!"]
             elif self.do_date < date.today():
-                do_string += connective + Communication.has_passed
+                do_string += connective + Communication["Has passed!"]
         columns.append(do_string)
 
         due_string = ""
         if self.due_date.year != INVALID_YEAR:
             due_string += self.due_date.strftime(DATE_FORMAT)
             if self.due_date == date.today():
-                due_string += connective + Communication.today
+                due_string += connective + Communication["Today!"]
             elif self.due_date < date.today():
-                due_string += connective + Communication.overdue
+                due_string += connective + Communication["OVERDUE!"]
         columns.append(due_string)
 
         recurrence_string = ""
         if self.recurrence is not None:
-            recurrence_string += Recurrence.to_text[self.recurrence]
+            recurrence_string += Recurrence.to_text(self.recurrence)
         columns.append(recurrence_string)
 
         return TextFormatting.columnize(columns, COLUMN_LENGTHS, PADDING)
@@ -321,14 +338,14 @@ class ToDoList:
                 else:
                     save_string += to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT)+"\\\\"
 
-                save_string += Recurrence.to_text[to_do_item.recurrence]    # Recurrence handles Nones
+                save_string += Recurrence.to_text(to_do_item.recurrence)    # Recurrence handles Nones
 
                 f.write(save_string + "\n")
 
     def print(self):
         print(
             TextFormatting.columnize(
-                [Communication.ID, Communication.description, Communication.do_date, Communication.due_date, Communication.recurrence],
+                [Communication["ID"], Communication["Description: "], Communication["Do date:     "], Communication["Due date:     "], Communication["Recurrence:  "]],
                 COLUMN_LENGTHS, PADDING
                 ).strip()
         )
@@ -361,7 +378,7 @@ class ToDoList:
                 self.last_removed = self.items.pop(i)
                 break
         else:
-            self.log(Communication.item_does_not_exist)
+            self.log(Communication["Item does not exist."])
             return
 
         self.ids_in_use.remove(id)
@@ -410,7 +427,7 @@ class ToDoList:
             if item.id == id:
                 return item
         else:
-            self.log(Communication.item_does_not_exist)
+            self.log(Communication["Item does not exist."])
             return None
 
     def get_new_id(self) -> str:
@@ -429,9 +446,9 @@ class ToDoList:
 
 
 def run_to_do_list():
-    to_do_list = ToDoList()
+    global Communication
 
-    last_removed: ToDoListItem = None
+    to_do_list = ToDoList()
 
     quit = False
     while not quit:
@@ -465,13 +482,33 @@ def run_to_do_list():
             case "show" | "reveal":
                 to_do_list.show_all_once()
             case "help":
-                print(HELP_STRING)
-                print("Hit ENTER to continue")
-                input()
+                to_do_list.log(HELP_STRING)
             case "delall":
-                print("Are you sure? This cannot be undone. [y/N]")
+                print(Communication["Are you sure? This cannot be undone. "] + "[y/N]")
                 if input().lower() == "y":
                     to_do_list.remove_all_items()
+            case "lang":
+                try:
+                    with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
+                        Communication = json.load(lang_file)[command_args[1]]
+
+                except FileNotFoundError:
+                    to_do_list.log("Missing todolist_lang.json")
+
+                except KeyError:
+                    to_do_list.log(Communication["Language not found."])
+
+                else:
+                    try:
+                        with open(SETTINGS_FILE, "r", encoding="utf-8") as settings_file:
+                            settings = json.load(settings_file)
+
+                        settings["language"] = command_args[1]
+
+                        with open(SETTINGS_FILE, "w", encoding="utf-8") as settings_file:
+                            json.dump(settings, settings_file)
+                    except FileNotFoundError:
+                        pass
 
         to_do_list.save()
 
@@ -482,14 +519,24 @@ if __name__ == '__main__':
 
     # load settings
     try:
-        with open(SETTINGS_FILE, "r") as settings_file:
+        with open(SETTINGS_FILE, "r", encoding="utf-8") as settings_file:
             settings = json.load(settings_file)
             try:
                 COLUMN_LENGTHS = tuple(settings["column_widths_in_characters"])
                 PADDING = settings["column_padding_in_characters"]
+                LANGUAGE = settings["language"]
             except KeyError:
                 pass
     except FileNotFoundError:
         pass
-    print(COLUMN_LENGTHS, PADDING)
+    
+    try:
+        with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
+            Communication = json.load(lang_file)[LANGUAGE]
+
+        run_to_do_list()
+
+    except FileNotFoundError:
+        pass
+
     run_to_do_list()
