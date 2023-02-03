@@ -7,7 +7,7 @@ import sys
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
-TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/to_do_items"
+TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_save.json"
 SETTINGS_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_settings.json"
 LANG_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_lang.json"
 INVALID_YEAR = 9999
@@ -216,7 +216,7 @@ class ToDoListItem:
     due_date: date = None
     recurrence: Recurrence = None
 
-    def populate(self, description: str, do_date_str: str, due_date_str: str, recurrence_str):
+    def populate(self, description: str, do_date_str: str, due_date_str: str, recurrence_str: str):
         self.description = description
         self.do_date = DateHandler.get_date_from_string(do_date_str)
         self.due_date = DateHandler.get_date_from_string(due_date_str)
@@ -316,19 +316,50 @@ class ToDoList:
 
     def populate(self):
         with open(TO_DO_ITEMS_SAVE_FILE, 'r') as f:
-            lines = f.readlines()
+            save_dict = json.load(f)
+        self.ids_in_use = []
+        for item_id, item_info in save_dict.items():
+            to_do_item = ToDoListItem(item_id)
+
+            if item_info["do_date"] == "None":
+                item_info["do_date"] = None
+            if item_info["due_date"] == "None":
+                item_info["due_date"] = None
+            
+            to_do_item.populate(
+                item_info["description"],
+                item_info["do_date"],
+                item_info["due_date"],
+                item_info["recurrence"]
+            )
+
+            self.items.append(to_do_item)
+            self.ids_in_use.append(item_id)
+            """ lines = f.readlines()
             for line in lines: # last line is empty
                 info = line.strip().split("\\\\")   # info items correspond to ToDoListItem attributes
                 to_do_item = ToDoListItem(info[0])
                 to_do_item.populate(*info[1:])
 
-                self.items.append(to_do_item)
+                self.items.append(to_do_item) """
 
-        self.ids_in_use = [item.id for item in self.items]
+        #self.ids_in_use = [item.id for item in self.items]
 
     def save(self):
+        save_dict = {}
+        for to_do_item in self.items:
+            save_dict[to_do_item.id] = {
+                "description" : to_do_item.description,
+                "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
+                "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
+                "recurrence" : Recurrence.to_text(to_do_item.recurrence)
+            }
+            
+
         with open(TO_DO_ITEMS_SAVE_FILE, 'w') as f:
-            for to_do_item in self.items:
+            json.dump(save_dict, f, ensure_ascii=False)
+
+            """ for to_do_item in self.items:
                 save_string = to_do_item.id + "\\\\" + to_do_item.description + "\\\\"
                 
                 if to_do_item.do_date is None:
@@ -343,7 +374,7 @@ class ToDoList:
 
                 save_string += Recurrence.to_text(to_do_item.recurrence)    # Recurrence handles Nones
 
-                f.write(save_string + "\n")
+                f.write(save_string + "\n") """
 
     def print(self):
         print(
@@ -522,16 +553,20 @@ def run_to_do_list():
                         settings["language"] = command_args[1]
 
                         with open(SETTINGS_FILE, "w", encoding="utf-8") as settings_file:
-                            json.dump(settings, settings_file)
+                            json.dump(settings, settings_file, ensure_ascii=False)
                     except FileNotFoundError:
                         pass
 
         to_do_list.save()
 
 if __name__ == '__main__':
-    # create save file if doesn't exist
-    f = open(TO_DO_ITEMS_SAVE_FILE, "a")
-    f.close()
+    # create save file (with {} for json loading) if it doesn't exist
+    with open(TO_DO_ITEMS_SAVE_FILE, "a+") as f:
+        f.seek(0)
+        in_f = f.read()
+        assert type(in_f) == str
+        if in_f.strip() == "":
+            f.write("{}")
 
     # load settings
     try:
