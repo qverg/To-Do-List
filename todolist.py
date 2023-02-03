@@ -378,8 +378,14 @@ class ToDoList:
                 self.last_removed = self.items.pop(i)
                 break
         else:
-            self.log(Communication["Item does not exist."])
-            return
+            for i in range(len(self.items)):
+                if self.items[i].description == id:
+                    id = self.items[i].id
+                    self.last_removed = self.items.pop(i)
+                    break
+            else:
+                self.log(Communication["Item does not exist."])
+                return
 
         self.ids_in_use.remove(id)
 
@@ -427,8 +433,12 @@ class ToDoList:
             if item.id == id:
                 return item
         else:
-            self.log(Communication["Item does not exist."])
-            return None
+            for item in self.items:
+                if item.description == id:
+                    return item
+            else:
+                self.log(Communication["Item does not exist."])
+                return None
 
     def get_new_id(self) -> str:
         n = 1
@@ -533,8 +543,6 @@ if __name__ == '__main__':
     try:
         with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
             Communication = json.load(lang_file)[LANGUAGE]
-
-        run_to_do_list()
 
     except FileNotFoundError:
         pass
