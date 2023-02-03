@@ -222,10 +222,13 @@ class ToDoListItem:
         self.due_date = DateHandler.get_date_from_string(due_date_str)
         self.recurrence = Recurrence.from_text(recurrence_str)
 
-    def edit(self, being_created = False):
+    def edit(self, being_created = False, desc=None):
         if being_created:
-            print(Communication["Description: "], end=" ")
-            self.description = input()
+            if desc is None:
+                print(Communication["Description: "], end=" ")
+                self.description = input()
+            else:
+                self.description = desc
             print(Communication["Do date:     "], end=" ")
             self.do_date = DateHandler.get_date_from_string(input())
             print(Communication["Due date:     "], end=" ")
@@ -363,9 +366,9 @@ class ToDoList:
         self.items.sort(key= lambda x: x.due_date)
         self.items.sort(key= lambda x: x.do_date)
 
-    def add_item(self):
+    def add_item(self, desc=None):
         to_do_item = ToDoListItem(self.get_new_id())
-        to_do_item.edit(being_created=True)
+        to_do_item.edit(being_created=True, desc=desc)
 
         self.items.append(to_do_item)
         self.sort()
@@ -476,7 +479,10 @@ def run_to_do_list():
 
         match command_args[0]:
             case "add" | "+":
-                to_do_list.add_item()
+                if command[4:] == "":  # without "add "
+                    to_do_list.add_item()
+                else:
+                    to_do_list.add_item(command[4:])
             case "done":
                 to_do_list.done_item(command_args[1])
             case "undo":
