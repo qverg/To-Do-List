@@ -333,8 +333,11 @@ class ToDoList:
 
         self.populate(save_dict)
 
-    def log(self, msg: str):
-        self.log_string = msg
+    def log(self, message: str) -> None:
+        if self.log_string is None:
+            self.log_string = message
+        else:
+            self.log_string += "\n"+message
 
     def print_log(self):
         if self.log_string is not None:
@@ -475,7 +478,6 @@ class ToDoListManager:
         self._base: ToDoList = None
         self._stack: list[ToDoListItem] = []
         self._show_all = False
-        self._log_string: str = None
 
         self.populate()
 
@@ -512,11 +514,6 @@ class ToDoListManager:
     def show_all_once(self) -> None:
         self._show_all = True
 
-    def print_log(self) -> None:
-        if self._log_string is not None:
-            print(self._log_string)
-            self._log_string = None
-
     def print(self) -> None:
         print(
             TextFormatting.columnize(
@@ -540,7 +537,7 @@ class ToDoListManager:
                 print(to_do_item.to_string(generation))
 
         self._show_all = False
-        self.print_log()
+        self.top.print_log()
 
 
 def run_to_do_list():
@@ -590,7 +587,7 @@ def run_to_do_list():
             case "show" | "reveal":
                 to_do_list.show_all_once()
             case "help":
-                to_do_list.log(HELP_STRING)
+                to_do_list.top.log(HELP_STRING)
             case "delall":
                 print(Communication["Are you sure? This cannot be undone. "] + "[y/N]")
                 if input().lower() == "y":
