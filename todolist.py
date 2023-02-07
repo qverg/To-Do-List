@@ -1,9 +1,7 @@
-from dataclasses import dataclass
 from datetime import date, timedelta
 from calendar import monthrange
 import os.path
 import json
-import sys
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
