@@ -17,16 +17,24 @@ PADDING = 3
 
 
 HELP_STRING = """Commands:
+ - Basic:
     > 'add' or '+'      Add a to-do list item
     > 'done [ID]'       Mark an item as done (ID is in the leftmost column)
-    > 'del [ID]'        Remove an item
-      'remove [ID]'
-      'rm [ID]'
     > 'undo'            Undo delete or mark as done
     > 'edit [ID]'       Edit an item (just press enter to leave a field as is)
+ - Sublists
+    > 'sub [ID]'        Show sublist for an item
+      's [ID]'
+    > 'sub'             Close the current sublist (move up in tree), subitems are saved
+    > 'home'            Go back to the base list - i.e. close all sublists
+ - Recurring items
     > 'finish [ID]'     Mark a recurring item as finished, in effect deleting it
     > 'revert [ID]'     Roll a recurring item back to the previous due date (undo mark as done)
     > 'show'            Show all hidden items (since recurring items with far off due dates are hidden)
+ - Meta
+    > 'del [ID]'        Remove an item
+      'remove [ID]'
+      'rm [ID]'
     > 'help'            Seems like you've found this already :-)
     > 'delall'          Delete all items
     > 'q'               Quit
