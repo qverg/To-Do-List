@@ -208,19 +208,33 @@ class DateHandler:
 
         return date(INVALID_YEAR, 1, 1)
 
-@dataclass
 class ToDoListItem:
-    id: str
-    description: str = ""
-    do_date: date = None
-    due_date: date = None
-    recurrence: Recurrence = None
+    def __init__(self, id: str) -> None:
+        self.id: str = id
+        self.description: str = ""
+        self.do_date: date = None
+        self.due_date: date = None
+        self.recurrence: Recurrence = None
+        
+        self._sublist: ToDoList = ToDoList({})
 
-    def populate(self, description: str, do_date_str: str, due_date_str: str, recurrence_str: str):
+    @property
+    def sublist(self):
+        return self._sublist
+
+    def populate(
+            self,
+            description: str,
+            do_date_str: str,
+            due_date_str: str,
+            recurrence_str: str,
+            sublist: dict
+        ):
         self.description = description
         self.do_date = DateHandler.get_date_from_string(do_date_str)
         self.due_date = DateHandler.get_date_from_string(due_date_str)
         self.recurrence = Recurrence.from_text(recurrence_str)
+        self._sublist = ToDoList(sublist)
 
     def edit(self, being_created = False, desc=None):
         if being_created:
@@ -295,7 +309,7 @@ class ToDoListItem:
         return TextFormatting.columnize(columns, COLUMN_LENGTHS, PADDING)
 
 class ToDoList:
-    def __init__(self):
+    def __init__(self, save_dict: dict):
         self.items : list[ToDoListItem] = []
         self.ids_in_use = []
         self.last_removed: ToDoListItem = None
@@ -304,7 +318,7 @@ class ToDoList:
 
         self.log_string: str = None
 
-        self.populate()
+        self.populate(save_dict)
 
     def log(self, msg: str):
         self.log_string = msg
@@ -314,9 +328,7 @@ class ToDoList:
             print(self.log_string)
             self.log_string = None
 
-    def populate(self):
-        with open(TO_DO_ITEMS_SAVE_FILE, 'r') as f:
-            save_dict = json.load(f)
+    def populate(self, save_dict: dict):
         self.ids_in_use = []
         for item_id, item_info in save_dict.items():
             to_do_item = ToDoListItem(item_id)
@@ -330,68 +342,25 @@ class ToDoList:
                 item_info["description"],
                 item_info["do_date"],
                 item_info["due_date"],
-                item_info["recurrence"]
+                item_info["recurrence"],
+                item_info["sublist"]
             )
 
             self.items.append(to_do_item)
             self.ids_in_use.append(item_id)
-            """ lines = f.readlines()
-            for line in lines: # last line is empty
-                info = line.strip().split("\\\\")   # info items correspond to ToDoListItem attributes
-                to_do_item = ToDoListItem(info[0])
-                to_do_item.populate(*info[1:])
 
-                self.items.append(to_do_item) """
-
-        #self.ids_in_use = [item.id for item in self.items]
-
-    def save(self):
+    def get_save_dict(self):
         save_dict = {}
         for to_do_item in self.items:
             save_dict[to_do_item.id] = {
                 "description" : to_do_item.description,
                 "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
                 "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
-                "recurrence" : Recurrence.to_text(to_do_item.recurrence)
+                "recurrence" : Recurrence.to_text(to_do_item.recurrence),
+                "sublist" : to_do_item.sublist.get_save_dict()
             }
             
-
-        with open(TO_DO_ITEMS_SAVE_FILE, 'w') as f:
-            json.dump(save_dict, f, ensure_ascii=False)
-
-            """ for to_do_item in self.items:
-                save_string = to_do_item.id + "\\\\" + to_do_item.description + "\\\\"
-                
-                if to_do_item.do_date is None:
-                    save_string += "None\\\\"
-                else:
-                    save_string += to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) + "\\\\"
-                
-                if to_do_item.due_date is None:
-                    save_string += "None\\\\"
-                else:
-                    save_string += to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT)+"\\\\"
-
-                save_string += Recurrence.to_text(to_do_item.recurrence)    # Recurrence handles Nones
-
-                f.write(save_string + "\n") """
-
-    def print(self):
-        print(
-            TextFormatting.columnize(
-                [Communication["ID"], Communication["Description: "], Communication["Do date:     "], Communication["Due date:     "], Communication["Recurrence:  "]],
-                COLUMN_LENGTHS, PADDING
-                ).strip()
-        )
-        print("-"*(sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)))    # Vertical line over all columns
-        for to_do_item in self.items:
-            if self.show_all:
-                print(to_do_item)
-            elif to_do_item.recurrence is None or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
-                print(to_do_item)
-
-        self.show_all = False
-        self.print_log()
+        return save_dict
 
     def sort(self):
         self.items.sort(key= lambda x: x.due_date)
@@ -488,11 +457,73 @@ class ToDoList:
         for i in range(len(self.items)-1, -1, -1):
             self.remove_item(self.items[i].id)
 
+class ToDoListManager:
+    def __init__(self) -> None:
+        self._base: ToDoList = None
+        self._stack: list[ToDoListItem] = []
+        self._show_all = False
+        self._log_string: str = None
+
+        self.populate()
+
+    @property
+    def top(self) -> ToDoList:
+        if len(self._stack) > 0:
+            return self._stack[-1].sublist
+        return self._base
+
+    def populate(self) -> None:
+        with open(TO_DO_ITEMS_SAVE_FILE, 'r') as f:
+            save_dict = json.load(f)
+        
+        self._base = ToDoList(save_dict)
+
+    def save(self) -> None:
+        save_dict = self._base.get_save_dict()
+        with open(TO_DO_ITEMS_SAVE_FILE, 'w') as f:
+            json.dump(save_dict, f, ensure_ascii=False, indent=4)
+
+
+    def push_sublist(self, id: str) -> None:
+        item = self.top.get_item(id)
+        if item is not None:
+            self._stack.append(item)
+
+    def pop_sublist(self) -> None:
+        if len(self._stack) > 0:
+            self._stack.pop(-1)
+
+    def show_all_once(self) -> None:
+        self._show_all = True
+
+    def print_log(self) -> None:
+        if self._log_string is not None:
+            print(self._log_string)
+            self._log_string = None
+
+    def print(self) -> None:
+        print(
+            TextFormatting.columnize(
+                [Communication["ID"], Communication["Description: "], Communication["Do date:     "], Communication["Due date:     "], Communication["Recurrence:  "]],
+                COLUMN_LENGTHS, PADDING
+                ).strip()
+        )
+        print("-"*(sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)))    # Vertical line over all columns
+        
+        for to_do_item in self.top.items:
+            if self._show_all:
+                print(to_do_item)
+            elif to_do_item.recurrence is None or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
+                print(to_do_item)
+
+        self._show_all = False
+        self.print_log()
+
 
 def run_to_do_list():
     global Communication
 
-    to_do_list = ToDoList()
+    to_do_list = ToDoListManager()
 
     quit = False
     while not quit:
@@ -511,21 +542,26 @@ def run_to_do_list():
         match command_args[0]:
             case "add" | "+":
                 if command[4:] == "":  # without "add "
-                    to_do_list.add_item()
+                    to_do_list.top.add_item()
                 else:
-                    to_do_list.add_item(command[4:])
+                    to_do_list.top.add_item(command[4:])
             case "done":
-                to_do_list.done_item(command_args[1])
+                to_do_list.top.done_item(command_args[1])
             case "undo":
-                to_do_list.undo_remove_item()
+                to_do_list.top.undo_remove_item()
+            case "sub":
+                if len(command_args) == 1:
+                    to_do_list.pop_sublist()
+                else:
+                    to_do_list.push_sublist(command_args[1])
             case "del" | "remove" | "rm":
-                to_do_list.remove_item(command_args[1])
+                to_do_list.top.remove_item(command_args[1])
             case "edit":
-                to_do_list.edit_item(command_args[1])
+                to_do_list.top.edit_item(command_args[1])
             case "finish":
-                to_do_list.finish_recurring_item(command_args[1])
+                to_do_list.top.finish_recurring_item(command_args[1])
             case "revert":
-                to_do_list.revert_recurring_item(command_args[1])
+                to_do_list.top.revert_recurring_item(command_args[1])
             case "show" | "reveal":
                 to_do_list.show_all_once()
             case "help":
@@ -533,7 +569,7 @@ def run_to_do_list():
             case "delall":
                 print(Communication["Are you sure? This cannot be undone. "] + "[y/N]")
                 if input().lower() == "y":
-                    to_do_list.remove_all_items()
+                    to_do_list.top.remove_all_items()
             case "lang":
                 try:
                     with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
