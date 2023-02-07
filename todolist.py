@@ -84,7 +84,7 @@ class TextFormatting:
         return True
 
     @staticmethod
-    def columnize(items: list[str], collengths: tuple[int] | int, padding: int, justify="left") -> str:
+    def columnize(items: list[str], collengths: tuple[int] | int, padding: int, justify="left", end_newline=True) -> str:
         if type(collengths) == int:
             collengths = (collengths for i in items)
 
@@ -105,6 +105,8 @@ class TextFormatting:
             out += "\n"
             cursors = [cursor + length for cursor, length in zip(cursors, collengths)]
 
+        if not end_newline:
+            out = out[:-1]
         return out
 
 class Recurrence:
@@ -278,10 +280,15 @@ class ToDoListItem:
                 else:
                     print(Communication["Invalid recurrence. Valid:"], *Recurrence.get_valid())
 
-    def __str__(self):
+    def to_string(self, generation=0, in_hierarchy=False):
         connective = " -- "
 
-        columns = [self.id, self.description]
+        id_string = self.id if not in_hierarchy else ""
+        descr_prefix = ""
+        if generation > 0:
+            descr_prefix = "   "*(generation-1) + "-> "
+
+        columns = [id_string, descr_prefix+self.description]
 
         do_string = ""
         if self.do_date.year != INVALID_YEAR:
@@ -306,7 +313,13 @@ class ToDoListItem:
             recurrence_string += Recurrence.to_text(self.recurrence)
         columns.append(recurrence_string)
 
-        return TextFormatting.columnize(columns, COLUMN_LENGTHS, PADDING)
+        out = TextFormatting.columnize(columns, COLUMN_LENGTHS, PADDING, end_newline=False)
+        if not in_hierarchy:
+            out += "\n"
+            if self.sublist.items:
+                prefix = "   "*generation + "->"
+                out += TextFormatting.columnize(["","   "*generation + "-> ...","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
+        return out
 
 class ToDoList:
     def __init__(self, save_dict: dict):
@@ -493,6 +506,9 @@ class ToDoListManager:
         if len(self._stack) > 0:
             self._stack.pop(-1)
 
+    def go_home(self) -> None:
+        self._stack = []
+
     def show_all_once(self) -> None:
         self._show_all = True
 
@@ -508,13 +524,20 @@ class ToDoListManager:
                 COLUMN_LENGTHS, PADDING
                 ).strip()
         )
+
         print("-"*(sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)))    # Vertical line over all columns
         
+        generation = 0
+        for parent_item in self._stack:
+            print(parent_item.to_string(generation, True))
+            generation += 1
+        print("")   # newline
+
         for to_do_item in self.top.items:
             if self._show_all:
-                print(to_do_item)
+                print(to_do_item.to_string(generation))
             elif to_do_item.recurrence is None or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
-                print(to_do_item)
+                print(to_do_item.to_string(generation))
 
         self._show_all = False
         self.print_log()
@@ -549,11 +572,13 @@ def run_to_do_list():
                 to_do_list.top.done_item(command_args[1])
             case "undo":
                 to_do_list.top.undo_remove_item()
-            case "sub":
+            case "sub" | "s":
                 if len(command_args) == 1:
                     to_do_list.pop_sublist()
                 else:
                     to_do_list.push_sublist(command_args[1])
+            case "home":
+                to_do_list.go_home()
             case "del" | "remove" | "rm":
                 to_do_list.top.remove_item(command_args[1])
             case "edit":
@@ -589,7 +614,7 @@ def run_to_do_list():
                         settings["language"] = command_args[1]
 
                         with open(SETTINGS_FILE, "w", encoding="utf-8") as settings_file:
-                            json.dump(settings, settings_file, ensure_ascii=False)
+                            json.dump(settings, settings_file, ensure_ascii=False, indent=4)
                     except FileNotFoundError:
                         pass
 
