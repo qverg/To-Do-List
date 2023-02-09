@@ -13,6 +13,7 @@ INVALID_YEAR = 9999
 COLUMN_LENGTHS = (3, 49, 25, 25, 12)
 PADDING = 3
 
+SHOW_N_HIDDEN = False
 
 HELP_STRING = """Commands:
  - Basic:
@@ -528,7 +529,8 @@ class ToDoListManager:
                 ).strip()
         )
 
-        print("-"*(sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)))    # Vertical line over all columns
+        width = sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)
+        print("-"*width)    # Vertical line over all columns
         
         generation = 0
         for parent_item in self._stack:
@@ -536,11 +538,17 @@ class ToDoListManager:
             generation += 1
         print("")   # newline
 
+        hidden_items = 0
         for to_do_item in self.top.items:
             if self._show_all:
                 print(to_do_item.to_string(generation))
             elif to_do_item.recurrence is None or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
                 print(to_do_item.to_string(generation))
+            else:
+                hidden_items += 1
+
+        if SHOW_N_HIDDEN and hidden_items != 0:
+            print(f"({hidden_items} hidden) \n".rjust(width))
 
         self._show_all = False
         self.top.print_log()
@@ -640,6 +648,7 @@ if __name__ == '__main__':
                 COLUMN_LENGTHS = tuple(settings["column_widths_in_characters"])
                 PADDING = settings["column_padding_in_characters"]
                 LANGUAGE = settings["language"]
+                SHOW_N_HIDDEN = settings["show_number_of_hidden_items"]
             except KeyError:
                 pass
     except FileNotFoundError:
