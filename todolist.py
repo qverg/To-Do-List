@@ -613,10 +613,10 @@ def run_to_do_list():
                         Communication = json.load(lang_file)[command_args[1]]
 
                 except FileNotFoundError:
-                    to_do_list.log("Missing todolist_lang.json")
+                    to_do_list.top.log("Missing todolist_lang.json")
 
                 except KeyError:
-                    to_do_list.log(Communication["Language not found."])
+                    to_do_list.top.log(Communication["Language not found."])
 
                 except IndexError:
                     with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
