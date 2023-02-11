@@ -40,6 +40,7 @@ HELP_STRING = """Commands:
       'quit'
       'exit'
     > 'lang [language]' Change language (requires todolist_lang.json)
+    > 'lang'            Show possible languages
 
 For dates you can use:
  - Day of the week          'saturday'  'sat'
@@ -548,7 +549,7 @@ class ToDoListManager:
                 hidden_items += 1
 
         if SHOW_N_HIDDEN and hidden_items != 0:
-            print(f"({hidden_items} hidden) \n".rjust(width))
+            print(f"({hidden_items} {Communication['hidden']}) \n".rjust(width))
 
         self._show_all = False
         self.top.print_log()
@@ -616,6 +617,13 @@ def run_to_do_list():
 
                 except KeyError:
                     to_do_list.log(Communication["Language not found."])
+
+                except IndexError:
+                    with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
+                        languages = ""
+                        for language in json.load(lang_file).keys():
+                            languages += language + "\n"
+                        to_do_list.top.log(languages.strip())
 
                 else:
                     try:
