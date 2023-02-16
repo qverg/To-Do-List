@@ -1,1 +1,12 @@
-{"column_widths_in_characters": [3, 49, 25, 25, 13], "column_padding_in_characters": 3, "language": "English"}
+{
+    "column_widths_in_characters": [
+        3,
+        49,
+        25,
+        25,
+        13
+    ],
+    "column_padding_in_characters": 3,
+    "language": "English",
+    "show_number_of_hidden_items": true
+}
