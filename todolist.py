@@ -225,6 +225,8 @@ class ToDoListItem:
         self.do_date: date = None
         self.due_date: date = None
         self.recurrence: Recurrence = None
+
+        self.hide_before_relevant = False
         
         self._sublist: ToDoList = ToDoList({})
 
@@ -481,6 +483,16 @@ class ToDoList:
         for i in range(len(self.items)-1, -1, -1):
             self.remove_item(self.items[i].id)
 
+    def hide_item(self, id):
+        item = self.get_item(id)
+        if item is not None:
+            item.hide_before_relevant = True
+
+    def unhide_item(self, id):
+        item = self.get_item(id)
+        if item is not None:
+            item.hide_before_relevant = False
+
 class ToDoListManager:
     def __init__(self) -> None:
         self._base: ToDoList = None
@@ -543,7 +555,8 @@ class ToDoListManager:
         for to_do_item in self.top.items:
             if self._show_all:
                 print(to_do_item.to_string(generation))
-            elif to_do_item.recurrence is None or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
+            elif (to_do_item.recurrence is None and not to_do_item.hide_before_relevant) \
+                or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
                 print(to_do_item.to_string(generation))
             else:
                 hidden_items += 1
@@ -595,6 +608,10 @@ def run_to_do_list():
                 to_do_list.top.remove_item(command_args[1])
             case "edit":
                 to_do_list.top.edit_item(command_args[1])
+            case "hide":
+                to_do_list.top.hide_item(command_args[1])
+            case "unhide":
+                to_do_list.top.unhide_item(command_args[1])
             case "finish":
                 to_do_list.top.finish_recurring_item(command_args[1])
             case "revert":
