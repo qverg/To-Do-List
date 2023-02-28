@@ -240,12 +240,14 @@ class ToDoListItem:
             do_date_str: str,
             due_date_str: str,
             recurrence_str: str,
+            hide_before_relevant: bool,
             sublist: dict
         ):
         self.description = description
         self.do_date = DateHandler.get_date_from_string(do_date_str)
         self.due_date = DateHandler.get_date_from_string(due_date_str)
         self.recurrence = Recurrence.from_text(recurrence_str)
+        self.hide_before_relevant = hide_before_relevant
         self._sublist = ToDoList(sublist)
 
     def edit(self, being_created = False, desc=None):
@@ -364,14 +366,20 @@ class ToDoList:
             if item_info["due_date"] == "None":
                 item_info["due_date"] = None
             
+            hide_before_relevant = False
+            try:
+                hide_before_relevant = item_info["hide_before_relevant"]
+            except KeyError:
+                pass
+
             to_do_item.populate(
                 item_info["description"],
                 item_info["do_date"],
                 item_info["due_date"],
                 item_info["recurrence"],
+                hide_before_relevant,
                 item_info["sublist"]
             )
-
             self.items.append(to_do_item)
             self.ids_in_use.append(item_id)
 
@@ -383,6 +391,7 @@ class ToDoList:
                 "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
                 "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
                 "recurrence" : Recurrence.to_text(to_do_item.recurrence),
+                "hide_before_relevant" : to_do_item.hide_before_relevant,
                 "sublist" : to_do_item.sublist.get_save_dict()
             }
             
