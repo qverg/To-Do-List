@@ -21,6 +21,8 @@ HELP_STRING = """Commands:
     > 'done [ID]'       Mark an item as done (ID is in the leftmost column)
     > 'undo'            Undo delete or mark as done
     > 'edit [ID]'       Edit an item (just press enter to leave a field as is)
+    > 'hide [ID]'       Hide an item so it only appears 3 days before the do date
+    > 'unhide [ID]'     Unhide a hidden item
  - Sublists
     > 'sub [ID]'        Show sublist for an item
       's [ID]'
