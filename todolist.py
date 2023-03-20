@@ -332,7 +332,7 @@ class ToDoListItem:
             out += "\n"
             if self.sublist.items:
                 prefix = "   "*generation + "->"
-                out += TextFormatting.columnize(["","   "*generation + "-> ...","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
+                out += TextFormatting.columnize(["","   "*generation + f"-> ... ({len(self.sublist.items)})","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
         return out
 
 class ToDoList:
