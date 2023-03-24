@@ -186,6 +186,8 @@ class DateHandler:
 
     @staticmethod
     def get_date_from_string(string_in: str) -> date:
+        if string_in is None:
+            return None
         string_in = string_in.lower()
 
         # first handle one-word strings
@@ -232,6 +234,8 @@ class ToDoListItem:
         
         self._sublist: ToDoList = ToDoList({})
 
+        self._delay_to_date: date = None
+
     @property
     def sublist(self):
         return self._sublist
@@ -242,6 +246,7 @@ class ToDoListItem:
             do_date_str: str,
             due_date_str: str,
             recurrence_str: str,
+            delay_to_date: date,
             hide_before_relevant: bool,
             sublist: dict
         ):
@@ -250,6 +255,7 @@ class ToDoListItem:
         self.due_date = DateHandler.get_date_from_string(due_date_str)
         self.recurrence = Recurrence.from_text(recurrence_str)
         self.hide_before_relevant = hide_before_relevant
+        self.delay_to(DateHandler.get_date_from_string(delay_to_date))
         self._sublist = ToDoList(sublist)
 
     def edit(self, being_created = False, desc=None):
@@ -335,6 +341,16 @@ class ToDoListItem:
                 out += TextFormatting.columnize(["","   "*generation + f"-> ... ({len(self.sublist.items)})","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
         return out
 
+    @property
+    def delay_to_date(self):
+        return self._delay_to_date
+    
+    def delay_to(self, delay_to_date: date):
+        self._delay_to_date = delay_to_date
+
+    def undelay(self):
+        self._delay_to_date = None
+
 class ToDoList:
     def __init__(self, save_dict: dict):
         self.items : list[ToDoListItem] = []
@@ -367,7 +383,13 @@ class ToDoList:
                 item_info["do_date"] = None
             if item_info["due_date"] == "None":
                 item_info["due_date"] = None
-            
+
+            try:
+                if item_info["delay_to_date"] == "None":
+                    item_info["delay_to_date"] = None
+            except KeyError:
+                item_info["delay_to_date"] = None
+
             hide_before_relevant = False
             try:
                 hide_before_relevant = item_info["hide_before_relevant"]
@@ -379,6 +401,7 @@ class ToDoList:
                 item_info["do_date"],
                 item_info["due_date"],
                 item_info["recurrence"],
+                item_info["delay_to_date"],
                 hide_before_relevant,
                 item_info["sublist"]
             )
@@ -393,6 +416,7 @@ class ToDoList:
                 "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
                 "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
                 "recurrence" : Recurrence.to_text(to_do_item.recurrence),
+                "delay_to_date" : to_do_item.delay_to_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.delay_to_date is not None else "None",
                 "hide_before_relevant" : to_do_item.hide_before_relevant,
                 "sublist" : to_do_item.sublist.get_save_dict()
             }
@@ -504,6 +528,16 @@ class ToDoList:
         if item is not None:
             item.hide_before_relevant = False
 
+    def delay_item(self, id, n_days: int):
+        item = self.get_item(id)
+        if item is not None:
+            item.delay_to(date.today()+timedelta(days=n_days))
+
+    def undelay_item(self, id):
+        item = self.get_item(id)
+        if item is not None:
+            item.undelay()
+
 class ToDoListManager:
     def __init__(self) -> None:
         self._base: ToDoList = None
@@ -564,10 +598,19 @@ class ToDoListManager:
 
         hidden_items = 0
         for to_do_item in self.top.items:
+
+            delay_item = False
+            if to_do_item.delay_to_date is not None:
+                if to_do_item.delay_to_date > date.today():
+                    delay_item = True
+                    hidden_items += 1
+            
             if self._show_all:
                 print(to_do_item.to_string(generation))
-            elif (to_do_item.recurrence is None and not to_do_item.hide_before_relevant) \
-                or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
+            elif ((to_do_item.recurrence is None and not to_do_item.hide_before_relevant) \
+                or to_do_item.do_date - timedelta(days=2) <= date.today() \
+                or to_do_item.due_date - timedelta(days=3) <= date.today()) \
+                and not delay_item:
                 print(to_do_item.to_string(generation))
             else:
                 hidden_items += 1
@@ -629,6 +672,15 @@ def run_to_do_list():
                 to_do_list.top.revert_recurring_item(command_args[1])
             case "show" | "reveal":
                 to_do_list.show_all_once()
+            case "delay":
+                try:
+                    to_do_list.top.delay_item(command_args[1], int(command_args[2]))
+                except ValueError:
+                    to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
+                except IndexError:
+                    to_do_list.top.log("Please add a number of days to delay the item to the command.") # TODO: add this string to language json
+            case "undelay":
+                to_do_list.top.undelay_item(command_args[1])
             case "help":
                 to_do_list.top.log(HELP_STRING)
             case "delall":
