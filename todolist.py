@@ -1,14 +1,19 @@
 from datetime import date, timedelta
 from calendar import monthrange
-import os.path
+import os
 import json
+import shutil
+import time
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
-TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_save.json"
+TO_DO_ITEMS_SAVE_FILE = "todolist_save.json" #os.path.dirname(os.path.abspath(__file__)) + "/todolist_save.json"
 SETTINGS_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_settings.json"
 LANG_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_lang.json"
 INVALID_YEAR = 9999
+
+MAX_BACKUPS = 5
+BACKUP_DIR = os.path.dirname(os.path.abspath(__file__)) + '/backups'
 
 COLUMN_LENGTHS = (3, 49, 25, 25, 12)
 PADDING = 3
@@ -23,6 +28,8 @@ HELP_STRING = """Commands:
     > 'edit [ID]'       Edit an item (just press enter to leave a field as is)
     > 'hide [ID]'       Hide an item so it only appears 3 days before the do date
     > 'unhide [ID]'     Unhide a hidden item
+    > 'delay [ID] [n]'  Delay showing an item for n days without changing any dates
+    > 'undelay [ID]'    Remove any delay on an item
  - Sublists
     > 'sub [ID]'        Show sublist for an item
       's [ID]'
@@ -43,6 +50,7 @@ HELP_STRING = """Commands:
       'exit'
     > 'lang [language]' Change language (requires todolist_lang.json)
     > 'lang'            Show possible languages
+    > 'restore_backup'  Restore the most recent backups. Five recent backups can be found in the 'backups' folder
 
 For dates you can use:
  - Day of the week          'saturday'  'sat'
@@ -232,6 +240,9 @@ class ToDoListItem:
         
         self._sublist: ToDoList = ToDoList({})
 
+        self._delay_to_date: date = date.today()    # if item does not need to be delayed, delay_to_date is the date it was created or last delayed,
+                                                    # this way it will always appear
+
     @property
     def sublist(self):
         return self._sublist
@@ -242,6 +253,7 @@ class ToDoListItem:
             do_date_str: str,
             due_date_str: str,
             recurrence_str: str,
+            delay_to_date: date,
             hide_before_relevant: bool,
             sublist: dict
         ):
@@ -250,6 +262,7 @@ class ToDoListItem:
         self.due_date = DateHandler.get_date_from_string(due_date_str)
         self.recurrence = Recurrence.from_text(recurrence_str)
         self.hide_before_relevant = hide_before_relevant
+        self.delay_to(DateHandler.get_date_from_string(delay_to_date))
         self._sublist = ToDoList(sublist)
 
     def edit(self, being_created = False, desc=None):
@@ -335,6 +348,16 @@ class ToDoListItem:
                 out += TextFormatting.columnize(["","   "*generation + f"-> ... ({len(self.sublist.items)})","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
         return out
 
+    @property
+    def delay_to_date(self):
+        return self._delay_to_date
+    
+    def delay_to(self, delay_to_date: date):
+        self._delay_to_date = delay_to_date
+
+    def undelay(self):
+        self._delay_to_date = date.today()
+
 class ToDoList:
     def __init__(self, save_dict: dict):
         self.items : list[ToDoListItem] = []
@@ -367,7 +390,13 @@ class ToDoList:
                 item_info["do_date"] = None
             if item_info["due_date"] == "None":
                 item_info["due_date"] = None
-            
+
+            try:
+                if item_info["delay_to_date"] == "None":        # TODO remove this
+                    item_info["delay_to_date"] = date.today().strftime(SAVE_FILE_DATE_FORMAT)
+            except KeyError:
+                item_info["delay_to_date"] = date.today().strftime(SAVE_FILE_DATE_FORMAT)
+
             hide_before_relevant = False
             try:
                 hide_before_relevant = item_info["hide_before_relevant"]
@@ -379,6 +408,7 @@ class ToDoList:
                 item_info["do_date"],
                 item_info["due_date"],
                 item_info["recurrence"],
+                item_info["delay_to_date"],
                 hide_before_relevant,
                 item_info["sublist"]
             )
@@ -393,6 +423,7 @@ class ToDoList:
                 "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
                 "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
                 "recurrence" : Recurrence.to_text(to_do_item.recurrence),
+                "delay_to_date" : to_do_item.delay_to_date.strftime(SAVE_FILE_DATE_FORMAT),
                 "hide_before_relevant" : to_do_item.hide_before_relevant,
                 "sublist" : to_do_item.sublist.get_save_dict()
             }
@@ -504,6 +535,16 @@ class ToDoList:
         if item is not None:
             item.hide_before_relevant = False
 
+    def delay_item(self, id, n_days: int):
+        item = self.get_item(id)
+        if item is not None:
+            item.delay_to(date.today()+timedelta(days=n_days))
+
+    def undelay_item(self, id):
+        item = self.get_item(id)
+        if item is not None:
+            item.undelay()
+
 class ToDoListManager:
     def __init__(self) -> None:
         self._base: ToDoList = None
@@ -564,10 +605,17 @@ class ToDoListManager:
 
         hidden_items = 0
         for to_do_item in self.top.items:
+
+            delay_item = to_do_item.delay_to_date > date.today()
+            if delay_item:
+                hidden_items += 1
+            
             if self._show_all:
                 print(to_do_item.to_string(generation))
-            elif (to_do_item.recurrence is None and not to_do_item.hide_before_relevant) \
-                or to_do_item.do_date - timedelta(days=2) <= date.today() or to_do_item.due_date - timedelta(days=3) <= date.today():
+            elif ((to_do_item.recurrence is None and not to_do_item.hide_before_relevant) \
+                or to_do_item.do_date - timedelta(days=2) <= date.today() \
+                or to_do_item.due_date - timedelta(days=3) <= date.today()) \
+                and not delay_item:
                 print(to_do_item.to_string(generation))
             else:
                 hidden_items += 1
@@ -629,6 +677,15 @@ def run_to_do_list():
                 to_do_list.top.revert_recurring_item(command_args[1])
             case "show" | "reveal":
                 to_do_list.show_all_once()
+            case "delay":
+                try:
+                    to_do_list.top.delay_item(command_args[1], int(command_args[2]))
+                except ValueError:
+                    to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
+                except IndexError:
+                    to_do_list.top.log("Please add a number of days to delay the item to the command.") # TODO: add this string to language json
+            case "undelay":
+                to_do_list.top.undelay_item(command_args[1])
             case "help":
                 to_do_list.top.log(HELP_STRING)
             case "delall":
@@ -665,6 +722,21 @@ def run_to_do_list():
                     except FileNotFoundError:
                         pass
 
+            case "restore_backup":
+                print("Are you sure? Changes from this session will be lost. [y/N]")
+                if input().lower() == 'y':
+                    backup_files = sorted(
+                        [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.startswith(TO_DO_ITEMS_SAVE_FILE)],
+                        key=lambda f: os.stat(f).st_mtime, reverse=True)
+
+                    # Restore most recent backup, if it exists
+                    if backup_files:
+                        shutil.copy(backup_files[0], TO_DO_ITEMS_SAVE_FILE)
+                        to_do_list.populate()
+                        print(f"Restored {TO_DO_ITEMS_SAVE_FILE} from backup: {backup_files[0]}")
+                    else:
+                        print("No backups found for", TO_DO_ITEMS_SAVE_FILE)
+
         to_do_list.save()
 
 if __name__ == '__main__':
@@ -675,6 +747,24 @@ if __name__ == '__main__':
         assert type(in_f) == str
         if in_f.strip() == "":
             f.write("{}")
+
+    # Create backups folder if it doesn't exist
+    if not os.path.exists(BACKUP_DIR):
+        os.makedirs(BACKUP_DIR)
+
+    # Get list of existing backup files, sorted by modification time (oldest first)
+    backup_files = sorted(
+        [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.startswith(TO_DO_ITEMS_SAVE_FILE)],
+        key=lambda f: os.stat(f).st_mtime)
+
+    # Remove oldest backups if there are more than MAX_BACKUPS
+    while len(backup_files) >= MAX_BACKUPS:
+        os.remove(backup_files.pop(0))
+
+    # Create a new backup file
+    backup_filename = backup_filename = os.path.join(BACKUP_DIR, f"{TO_DO_ITEMS_SAVE_FILE}.{int(time.time())}.bak")
+    shutil.copy(TO_DO_ITEMS_SAVE_FILE, backup_filename)
+
 
     # load settings
     try:
