@@ -50,6 +50,7 @@ HELP_STRING = """Commands:
       'exit'
     > 'lang [language]' Change language (requires todolist_lang.json)
     > 'lang'            Show possible languages
+    > 'restore_backup'  Restore the most recent backups. Five recent backups can be found in the 'backups' folder
 
 For dates you can use:
  - Day of the week          'saturday'  'sat'
