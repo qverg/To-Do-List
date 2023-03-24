@@ -23,6 +23,8 @@ HELP_STRING = """Commands:
     > 'edit [ID]'       Edit an item (just press enter to leave a field as is)
     > 'hide [ID]'       Hide an item so it only appears 3 days before the do date
     > 'unhide [ID]'     Unhide a hidden item
+    > 'delay [ID] [n]'  Delay showing an item for n days without changing any dates
+    > 'undelay [ID]'    Remove any delay on an item
  - Sublists
     > 'sub [ID]'        Show sublist for an item
       's [ID]'
