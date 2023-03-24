@@ -1,14 +1,19 @@
 from datetime import date, timedelta
 from calendar import monthrange
-import os.path
+import os
 import json
+import shutil
+import time
 
 DATE_FORMAT = "%a %d %b"    # e.g. Sat 08 Oct
 SAVE_FILE_DATE_FORMAT = "%d/%m/%Y"
-TO_DO_ITEMS_SAVE_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_save.json"
+TO_DO_ITEMS_SAVE_FILE = "todolist_save.json" #os.path.dirname(os.path.abspath(__file__)) + "/todolist_save.json"
 SETTINGS_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_settings.json"
 LANG_FILE = os.path.dirname(os.path.abspath(__file__)) + "/todolist_lang.json"
 INVALID_YEAR = 9999
+
+MAX_BACKUPS = 5
+BACKUP_DIR = os.path.dirname(os.path.abspath(__file__)) + '/backups'
 
 COLUMN_LENGTHS = (3, 49, 25, 25, 12)
 PADDING = 3
@@ -716,6 +721,21 @@ def run_to_do_list():
                     except FileNotFoundError:
                         pass
 
+            case "restore_backup":
+                print("Are you sure? Changes from this session will be lost. [y/N]")
+                if input().lower() == 'y':
+                    backup_files = sorted(
+                        [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.startswith(TO_DO_ITEMS_SAVE_FILE)],
+                        key=lambda f: os.stat(f).st_mtime, reverse=True)
+
+                    # Restore most recent backup, if it exists
+                    if backup_files:
+                        shutil.copy(backup_files[0], TO_DO_ITEMS_SAVE_FILE)
+                        to_do_list.populate()
+                        print(f"Restored {TO_DO_ITEMS_SAVE_FILE} from backup: {backup_files[0]}")
+                    else:
+                        print("No backups found for", TO_DO_ITEMS_SAVE_FILE)
+
         to_do_list.save()
 
 if __name__ == '__main__':
@@ -726,6 +746,24 @@ if __name__ == '__main__':
         assert type(in_f) == str
         if in_f.strip() == "":
             f.write("{}")
+
+    # Create backups folder if it doesn't exist
+    if not os.path.exists(BACKUP_DIR):
+        os.makedirs(BACKUP_DIR)
+
+    # Get list of existing backup files, sorted by modification time (oldest first)
+    backup_files = sorted(
+        [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.startswith(TO_DO_ITEMS_SAVE_FILE)],
+        key=lambda f: os.stat(f).st_mtime)
+
+    # Remove oldest backups if there are more than MAX_BACKUPS
+    while len(backup_files) >= MAX_BACKUPS:
+        os.remove(backup_files.pop(0))
+
+    # Create a new backup file
+    backup_filename = backup_filename = os.path.join(BACKUP_DIR, f"{TO_DO_ITEMS_SAVE_FILE}.{int(time.time())}.bak")
+    shutil.copy(TO_DO_ITEMS_SAVE_FILE, backup_filename)
+
 
     # load settings
     try:
