@@ -186,8 +186,6 @@ class DateHandler:
 
     @staticmethod
     def get_date_from_string(string_in: str) -> date:
-        if string_in is None:
-            return None
         string_in = string_in.lower()
 
         # first handle one-word strings
@@ -234,7 +232,8 @@ class ToDoListItem:
         
         self._sublist: ToDoList = ToDoList({})
 
-        self._delay_to_date: date = None
+        self._delay_to_date: date = date.today()    # if item does not need to be delayed, delay_to_date is the date it was created or last delayed,
+                                                    # this way it will always appear
 
     @property
     def sublist(self):
@@ -349,7 +348,7 @@ class ToDoListItem:
         self._delay_to_date = delay_to_date
 
     def undelay(self):
-        self._delay_to_date = None
+        self._delay_to_date = date.today()
 
 class ToDoList:
     def __init__(self, save_dict: dict):
@@ -385,10 +384,10 @@ class ToDoList:
                 item_info["due_date"] = None
 
             try:
-                if item_info["delay_to_date"] == "None":
-                    item_info["delay_to_date"] = None
+                if item_info["delay_to_date"] == "None":        # TODO remove this
+                    item_info["delay_to_date"] = date.today().strftime(SAVE_FILE_DATE_FORMAT)
             except KeyError:
-                item_info["delay_to_date"] = None
+                item_info["delay_to_date"] = date.today().strftime(SAVE_FILE_DATE_FORMAT)
 
             hide_before_relevant = False
             try:
@@ -416,7 +415,7 @@ class ToDoList:
                 "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
                 "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
                 "recurrence" : Recurrence.to_text(to_do_item.recurrence),
-                "delay_to_date" : to_do_item.delay_to_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.delay_to_date is not None else "None",
+                "delay_to_date" : to_do_item.delay_to_date.strftime(SAVE_FILE_DATE_FORMAT),
                 "hide_before_relevant" : to_do_item.hide_before_relevant,
                 "sublist" : to_do_item.sublist.get_save_dict()
             }
@@ -599,11 +598,9 @@ class ToDoListManager:
         hidden_items = 0
         for to_do_item in self.top.items:
 
-            delay_item = False
-            if to_do_item.delay_to_date is not None:
-                if to_do_item.delay_to_date > date.today():
-                    delay_item = True
-                    hidden_items += 1
+            delay_item = to_do_item.delay_to_date > date.today()
+            if delay_item:
+                hidden_items += 1
             
             if self._show_all:
                 print(to_do_item.to_string(generation))
