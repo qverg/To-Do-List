@@ -607,7 +607,7 @@ class ToDoListManager:
         for to_do_item in self.top.items:
 
             delay_item = to_do_item.delay_to_date > date.today()
-            if delay_item:
+            if delay_item and not self._show_all:
                 hidden_items += 1
             
             if self._show_all:
