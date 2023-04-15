@@ -128,9 +128,10 @@ class TextFormatting:
         return out
 
 class Recurrence:
-    WEEKLY = 1
-    MONTHLY = 2
-    DAILY = 3
+    WEEKLY = 2      # \
+    MONTHLY = 1     #  |- ordering of numbers is important! do not change!
+    DAILY = 3       # /
+    min = -1000     # only use in temp variables
 
     to_timedelta = {
         WEEKLY : timedelta(weeks=1),
@@ -240,6 +241,9 @@ class ToDoListItem:
         
         self._sublist: ToDoList = ToDoList({})
 
+        self.own_do_date: date = None
+        self.own_due_date: date = None
+
         self._delay_to_date: date = date.today()    # if item does not need to be delayed, delay_to_date is the date it was created or last delayed,
                                                     # this way it will always appear
 
@@ -258,12 +262,19 @@ class ToDoListItem:
             sublist: dict
         ):
         self.description = description
-        self.do_date = DateHandler.get_date_from_string(do_date_str)
-        self.due_date = DateHandler.get_date_from_string(due_date_str)
-        self.recurrence = Recurrence.from_text(recurrence_str)
+        self.own_do_date = DateHandler.get_date_from_string(do_date_str)
+        self.own_due_date = DateHandler.get_date_from_string(due_date_str)
+        self.own_recurrence = Recurrence.from_text(recurrence_str)
+
+        self.do_date = self.own_do_date
+        self.due_date = self.own_due_date
+        self.recurrence = self.own_recurrence
+
         self.hide_before_relevant = hide_before_relevant
         self.delay_to(DateHandler.get_date_from_string(delay_to_date))
         self._sublist = ToDoList(sublist)
+        
+        self.update_inherited_data()
 
     def edit(self, being_created = False, desc=None):
         if being_created:
@@ -273,14 +284,14 @@ class ToDoListItem:
             else:
                 self.description = desc
             print(Communication["Do date:     "], end=" ")
-            self.do_date = DateHandler.get_date_from_string(input())
+            self.own_do_date = DateHandler.get_date_from_string(input())
             print(Communication["Due date:     "], end=" ")
-            self.due_date = DateHandler.get_date_from_string(input())
+            self.own_due_date = DateHandler.get_date_from_string(input())
             while True:
                 print(Communication["Recurrence:  "], end=" ")
                 rec_in = input().strip()
                 if rec_in in Recurrence.get_valid():
-                    self.recurrence = Recurrence.from_text(rec_in)
+                    self.own_recurrence = Recurrence.from_text(rec_in)
                     break
                 else:
                     print(Communication["Invalid recurrence. Valid:"], *Recurrence.get_valid())
@@ -291,10 +302,10 @@ class ToDoListItem:
             self.description = str_in if str_in != "" else self.description
             print(Communication["Do date:     "], end=" ")
             str_in = input()
-            self.do_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.do_date
+            self.own_do_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.do_date
             print(Communication["Due date:     "], end=" ")
             str_in = input()
-            self.due_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.due_date
+            self.own_due_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.due_date
 
             while True:
                 print(Communication["Recurrence:  "], end=" ")
@@ -302,10 +313,12 @@ class ToDoListItem:
                 if rec_in == "":
                     break
                 if rec_in in Recurrence.get_valid():
-                    self.recurrence = Recurrence.from_text(rec_in)
+                    self.own_recurrence = Recurrence.from_text(rec_in)
                     break
                 else:
                     print(Communication["Invalid recurrence. Valid:"], *Recurrence.get_valid())
+
+        self.update_inherited_data()
 
     def to_string(self, generation=0, in_hierarchy=False):
         connective = " -- "
@@ -317,27 +330,50 @@ class ToDoListItem:
 
         columns = [id_string, descr_prefix+self.description]
 
+        if in_hierarchy:
+            do_date = self.own_do_date
+            due_date = self.own_due_date
+            recurrence = self.own_recurrence
+        else:
+            do_date = self.do_date
+            due_date = self.due_date
+            recurrence = self.recurrence
+        
         do_string = ""
-        if self.do_date.year != INVALID_YEAR:
-            do_string += self.do_date.strftime(DATE_FORMAT)
-            if self.do_date == date.today():
+
+        if do_date.year != INVALID_YEAR:
+            do_string += do_date.strftime(DATE_FORMAT)
+            if do_date == date.today():
                 do_string += connective + Communication["Today!"]
-            elif self.do_date < date.today():
+            elif do_date < date.today():
                 do_string += connective + Communication["Has passed!"]
+
+            if do_date != self.own_do_date:
+                do_string += " (subitem)"
+            
+
         columns.append(do_string)
 
         due_string = ""
-        if self.due_date.year != INVALID_YEAR:
-            due_string += self.due_date.strftime(DATE_FORMAT)
-            if self.due_date == date.today():
+        if due_date.year != INVALID_YEAR:
+            due_string += due_date.strftime(DATE_FORMAT)
+            if due_date == date.today():
                 due_string += connective + Communication["Today!"]
-            elif self.due_date < date.today():
+            elif due_date < date.today():
                 due_string += connective + Communication["OVERDUE!"]
+
+            if due_date != self.own_due_date:
+                due_string += " (subitem)"
+            
         columns.append(due_string)
 
         recurrence_string = ""
-        if self.recurrence is not None:
-            recurrence_string += Recurrence.to_text(self.recurrence)
+        if recurrence is not None:
+            recurrence_string += Recurrence.to_text(recurrence)
+
+            if recurrence != self.own_recurrence:
+                recurrence_string += " (subitem)"
+
         columns.append(recurrence_string)
 
         out = TextFormatting.columnize(columns, COLUMN_LENGTHS, PADDING, end_newline=False)
@@ -357,6 +393,24 @@ class ToDoListItem:
 
     def undelay(self):
         self._delay_to_date = date.today()
+
+    # update do_date, due_date and recurrence based on subitems
+    def update_inherited_data(self):
+        self.do_date = self.own_do_date
+        self.due_date = self.own_due_date
+        self.recurrence = self.own_recurrence if self.own_recurrence is not None else Recurrence.min
+        for item in self.sublist.items:
+            if item.do_date < self.do_date:
+                self.do_date = item.do_date
+            if item.due_date < self.due_date:
+                self.due_date = item.due_date
+            
+            if item.recurrence is not None:
+                if item.recurrence > self.recurrence:
+                    self.recurrence = item.recurrence
+
+        if self.recurrence == Recurrence.min:
+            self.recurrence = None
 
 class ToDoList:
     def __init__(self, save_dict: dict):
@@ -420,9 +474,9 @@ class ToDoList:
         for to_do_item in self.items:
             save_dict[to_do_item.id] = {
                 "description" : to_do_item.description,
-                "do_date" : to_do_item.do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.do_date is not None else "None",
-                "due_date" : to_do_item.due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.due_date is not None else "None",
-                "recurrence" : Recurrence.to_text(to_do_item.recurrence),
+                "do_date" : to_do_item.own_do_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.own_do_date is not None else "None",
+                "due_date" : to_do_item.own_due_date.strftime(SAVE_FILE_DATE_FORMAT) if to_do_item.own_due_date is not None else "None",
+                "recurrence" : Recurrence.to_text(to_do_item.own_recurrence),
                 "delay_to_date" : to_do_item.delay_to_date.strftime(SAVE_FILE_DATE_FORMAT),
                 "hide_before_relevant" : to_do_item.hide_before_relevant,
                 "sublist" : to_do_item.sublist.get_save_dict()
@@ -579,6 +633,7 @@ class ToDoListManager:
     def pop_sublist(self) -> None:
         if len(self._stack) > 0:
             self._stack.pop(-1)
+        self.top.sort()     # in case inherited dates changed
 
     def go_home(self) -> None:
         self._stack = []
@@ -596,7 +651,7 @@ class ToDoListManager:
 
         width = sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)
         print("-"*width)    # Vertical line over all columns
-        
+
         generation = 0
         for parent_item in self._stack:
             print(parent_item.to_string(generation, True))
@@ -605,6 +660,7 @@ class ToDoListManager:
 
         hidden_items = 0
         for to_do_item in self.top.items:
+            to_do_item.update_inherited_data()
 
             delay_item = to_do_item.delay_to_date > date.today()
             if delay_item and not self._show_all:
