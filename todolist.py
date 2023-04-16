@@ -531,9 +531,9 @@ class ToDoList:
     def done_item(self, id: str):
         item = self.get_item(id)
         if item is not None:
-            if item.recurrence is not None:
-                item.do_date += Recurrence.to_timedelta[item.recurrence]
-                item.due_date += Recurrence.to_timedelta[item.recurrence]
+            if item.own_recurrence is not None:
+                item.own_do_date += Recurrence.to_timedelta[item.own_recurrence]
+                item.own_due_date += Recurrence.to_timedelta[item.own_recurrence]
                 self.sort()
             else:
                 self.remove_item(id)
@@ -541,7 +541,7 @@ class ToDoList:
     def finish_recurring_item(self, id: str):
         item = self.get_item(id)
         if item is not None:
-            if item.recurrence is not None:
+            if item.own_recurrence is not None:
                 self.remove_item(id)
             else:
                 self.done_item(id)
@@ -549,9 +549,9 @@ class ToDoList:
     def revert_recurring_item(self, id: str):
         item = self.get_item(id)
         if item is not None:
-            if item.recurrence is not None:
-                item.do_date -= Recurrence.to_timedelta[item.recurrence]
-                item.due_date -= Recurrence.to_timedelta[item.recurrence]
+            if item.own_recurrence is not None:
+                item.own_do_date -= Recurrence.to_timedelta[item.own_recurrence]
+                item.own_due_date -= Recurrence.to_timedelta[item.own_recurrence]
 
     def get_item(self, id: str):
         for item in self.items:
@@ -659,6 +659,8 @@ class ToDoListManager:
         print("")   # newline
 
         hidden_items = 0
+        self.top.sort()
+
         for to_do_item in self.top.items:
             to_do_item.update_inherited_data()
 
