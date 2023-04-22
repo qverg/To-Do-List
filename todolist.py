@@ -642,6 +642,18 @@ class ToDoListManager:
         self._show_all = True
 
     def print(self) -> None:
+
+        
+
+        tasks_today = False
+        for to_do_item in self.top.items:
+            if to_do_item.do_date == date.today() or to_do_item.due_date == date.today():
+                tasks_today = True
+                break
+
+        if not tasks_today:
+            print("\t\tNONE TODAY")
+
         print(
             TextFormatting.columnize(
                 [Communication["ID"], Communication["Description: "], Communication["Do date:     "], Communication["Due date:     "], Communication["Recurrence:  "]],
