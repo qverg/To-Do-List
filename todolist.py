@@ -659,7 +659,7 @@ class ToDoListManager:
         
         tasks_today = False
         for to_do_item in self.top.items:
-            if to_do_item.do_date == date.today() or to_do_item.due_date == date.today():
+            if to_do_item.do_date <= date.today() or to_do_item.due_date <= date.today():
                 tasks_today = True
                 break
 
