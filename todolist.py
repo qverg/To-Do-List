@@ -302,10 +302,10 @@ class ToDoListItem:
             self.description = str_in if str_in != "" else self.description
             print(Communication["Do date:     "], end=" ")
             str_in = input()
-            self.own_do_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.do_date
+            self.own_do_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.own_do_date
             print(Communication["Due date:     "], end=" ")
             str_in = input()
-            self.own_due_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.due_date
+            self.own_due_date = DateHandler.get_date_from_string(str_in) if str_in != "" else self.own_due_date
 
             while True:
                 print(Communication["Recurrence:  "], end=" ")
