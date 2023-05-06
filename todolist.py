@@ -342,11 +342,12 @@ class ToDoListItem:
         do_string = ""
 
         if do_date.year != INVALID_YEAR:
-            do_string += do_date.strftime(DATE_FORMAT)
             if do_date == date.today():
-                do_string += connective + Communication["Today!"]
-            elif do_date < date.today():
-                do_string += connective + Communication["Has passed!"]
+                do_string += Communication["Today!"]
+            else:
+                do_string += do_date.strftime(DATE_FORMAT)
+                if do_date < date.today():
+                    do_string += connective + Communication["Has passed!"]
 
             if do_date != self.own_do_date:
                 do_string += " (subitem)"
@@ -356,11 +357,12 @@ class ToDoListItem:
 
         due_string = ""
         if due_date.year != INVALID_YEAR:
-            due_string += due_date.strftime(DATE_FORMAT)
             if due_date == date.today():
-                due_string += connective + Communication["Today!"]
-            elif due_date < date.today():
-                due_string += connective + Communication["OVERDUE!"]
+                due_string += Communication["Today!"]
+            else:
+                due_string += due_date.strftime(DATE_FORMAT)
+                if due_date < date.today():
+                    due_string += connective + Communication["OVERDUE!"]
 
             if due_date != self.own_due_date:
                 due_string += " (subitem)"
