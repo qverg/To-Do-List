@@ -652,6 +652,7 @@ class ToDoListManager:
         width = sum(COLUMN_LENGTHS)+PADDING*(len(COLUMN_LENGTHS)-1)
         print("-"*width)    # Vertical line over all columns
 
+        
         generation = 0
         for parent_item in self._stack:
             print(parent_item.to_string(generation, True))
@@ -668,10 +669,14 @@ class ToDoListManager:
             print(TextFormatting.columnize(["","NONE TODAY", "", "", ""], COLUMN_LENGTHS, PADDING, justify="center"))
 
         hidden_items = 0
+
+        # this loop must come before sort so things are sorted based on updated inherited dates
+        for to_do_item in self.top.items:
+            to_do_item.update_inherited_data()
+
         self.top.sort()
 
         for to_do_item in self.top.items:
-            to_do_item.update_inherited_data()
 
             delay_item = to_do_item.delay_to_date > date.today()
             if delay_item and not self._show_all:
