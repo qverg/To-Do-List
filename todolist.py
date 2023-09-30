@@ -374,7 +374,7 @@ class ToDoListItem:
             recurrence_string += Recurrence.to_text(recurrence)
 
             if recurrence != self.own_recurrence:
-                recurrence_string += " (subitem)"
+                recurrence_string += " (sub)"
 
         columns.append(recurrence_string)
 
