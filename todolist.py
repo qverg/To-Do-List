@@ -708,7 +708,7 @@ def run_to_do_list():
 
     quit = False
     while not quit:
-        os.system("clear")
+        os.system("cls" if os.name =='nt' else "clear")
         to_do_list.print()
         print("> ", end="")
         command = input()
