@@ -26,6 +26,7 @@ HELP_STRING = """Commands:
     > 'done [ID]'       Mark an item as done (ID is in the leftmost column)
     > 'undo'            Undo delete or mark as done
     > 'edit [ID]'       Edit an item (just press enter to leave a field as is)
+    > 'add$$' or '+$$'  Add a to-do list item with a custom ID by replacing $$ with your ID of choice
     > 'hide [ID]'       Hide an item so it only appears 3 days before the do date
     > 'unhide [ID]'     Unhide a hidden item
     > 'delay [ID] [n]'  Delay showing an item for n days without changing any dates
@@ -490,14 +491,26 @@ class ToDoList:
         self.items.sort(key= lambda x: x.due_date)
         self.items.sort(key= lambda x: x.do_date)
 
-    def add_item(self, desc=None):
-        to_do_item = ToDoListItem(self.get_new_id())
-        to_do_item.edit(being_created=True, desc=desc)
+    def add_item(self, desc=None, id: str=None):
+        if id is not None:
+            if id in self.ids_in_use:
+                self.log("ID in use.")
+            else:
+                to_do_item = ToDoListItem(id)
+                to_do_item.edit(being_created=True, desc=desc)
 
-        self.items.append(to_do_item)
-        self.sort()
+                self.items.append(to_do_item)
+                self.sort()
 
-        self.ids_in_use.append(to_do_item.id)
+                self.ids_in_use.append(to_do_item.id)
+        else:
+            to_do_item = ToDoListItem(self.get_new_id())
+            to_do_item.edit(being_created=True, desc=desc)
+
+            self.items.append(to_do_item)
+            self.sort()
+
+            self.ids_in_use.append(to_do_item.id)
 
     def remove_item(self, id: str):
         for i in range(len(self.items)):
@@ -720,96 +733,109 @@ def run_to_do_list():
 
         command_args = command.split()
 
-        match command_args[0]:
-            case "add" | "+":
-                if command[4:] == "":  # without "add "
-                    to_do_list.top.add_item()
-                else:
-                    to_do_list.top.add_item(command[4:])
-            case "done":
-                to_do_list.top.done_item(command_args[1])
-            case "undo":
-                to_do_list.top.undo_remove_item()
-            case "sub" | "s":
-                if len(command_args) == 1:
-                    to_do_list.pop_sublist()
-                else:
-                    to_do_list.push_sublist(command_args[1])
-            case "home":
-                to_do_list.go_home()
-            case "del" | "remove" | "rm":
-                to_do_list.top.remove_item(command_args[1])
-            case "edit":
-                to_do_list.top.edit_item(command_args[1])
-            case "hide":
-                to_do_list.top.hide_item(command_args[1])
-            case "unhide":
-                to_do_list.top.unhide_item(command_args[1])
-            case "finish":
-                to_do_list.top.finish_recurring_item(command_args[1])
-            case "revert":
-                to_do_list.top.revert_recurring_item(command_args[1])
-            case "show" | "reveal":
-                to_do_list.show_all_once()
-            case "delay":
-                try:
-                    to_do_list.top.delay_item(command_args[1], int(command_args[2]))
-                except ValueError:
-                    to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
-                except IndexError:
-                    to_do_list.top.log("Please add a number of days to delay the item to the command.") # TODO: add this string to language json
-            case "undelay":
-                to_do_list.top.undelay_item(command_args[1])
-            case "help":
-                to_do_list.top.log(HELP_STRING)
-            case "delall":
-                print(Communication["Are you sure? This cannot be undone. "] + "[y/N]")
-                if input().lower() == "y":
-                    to_do_list.top.remove_all_items()
-            case "lang":
-                try:
-                    with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
-                        Communication = json.load(lang_file)[command_args[1]]
-
-                except FileNotFoundError:
-                    to_do_list.top.log("Missing todolist_lang.json")
-
-                except KeyError:
-                    to_do_list.top.log(Communication["Language not found."])
-
-                except IndexError:
-                    with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
-                        languages = ""
-                        for language in json.load(lang_file).keys():
-                            languages += language + "\n"
-                        to_do_list.top.log(languages.strip())
-
-                else:
-                    try:
-                        with open(SETTINGS_FILE, "r", encoding="utf-8") as settings_file:
-                            settings = json.load(settings_file)
-
-                        settings["language"] = command_args[1]
-
-                        with open(SETTINGS_FILE, "w", encoding="utf-8") as settings_file:
-                            json.dump(settings, settings_file, ensure_ascii=False, indent=4)
-                    except FileNotFoundError:
-                        pass
-
-            case "restore_backup":
-                print("Are you sure? Changes from this session will be lost. [y/N]")
-                if input().lower() == 'y':
-                    backup_files = sorted(
-                        [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.startswith(TO_DO_ITEMS_SAVE_FILE)],
-                        key=lambda f: os.stat(f).st_mtime, reverse=True)
-
-                    # Restore most recent backup, if it exists
-                    if backup_files:
-                        shutil.copy(backup_files[0], TO_DO_ITEMS_SAVE_FILE)
-                        to_do_list.populate()
-                        print(f"Restored {TO_DO_ITEMS_SAVE_FILE} from backup: {backup_files[0]}")
+        if command_args[0][:3] == "add" and command_args[0] != "add": # custom ID
+            id = command_args[0][3:]
+            if len(command_args) == 1:
+                to_do_list.top.add_item(id=id)
+            else:
+                to_do_list.top.add_item(desc=command[4+len(id):], id=id)
+        elif command_args[0][0] == "+" and command_args[0] != "+": # custom ID
+            id = command_args[0][1:]
+            if len(command_args) == 1:
+                to_do_list.top.add_item(id=id)
+            else:
+                to_do_list.top.add_item(desc=command[1+len(id):], id=id)
+        else:
+            match command_args[0]:
+                case "add" | "+":
+                    if command[4:] == "":  # without "add "
+                        to_do_list.top.add_item()
                     else:
-                        print("No backups found for", TO_DO_ITEMS_SAVE_FILE)
+                        to_do_list.top.add_item(desc=command[4:])
+                case "done":
+                    to_do_list.top.done_item(command_args[1])
+                case "undo":
+                    to_do_list.top.undo_remove_item()
+                case "sub" | "s":
+                    if len(command_args) == 1:
+                        to_do_list.pop_sublist()
+                    else:
+                        to_do_list.push_sublist(command_args[1])
+                case "home":
+                    to_do_list.go_home()
+                case "del" | "remove" | "rm":
+                    to_do_list.top.remove_item(command_args[1])
+                case "edit":
+                    to_do_list.top.edit_item(command_args[1])
+                case "hide":
+                    to_do_list.top.hide_item(command_args[1])
+                case "unhide":
+                    to_do_list.top.unhide_item(command_args[1])
+                case "finish":
+                    to_do_list.top.finish_recurring_item(command_args[1])
+                case "revert":
+                    to_do_list.top.revert_recurring_item(command_args[1])
+                case "show" | "reveal":
+                    to_do_list.show_all_once()
+                case "delay":
+                    try:
+                        to_do_list.top.delay_item(command_args[1], int(command_args[2]))
+                    except ValueError:
+                        to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
+                    except IndexError:
+                        to_do_list.top.log("Please add a number of days to delay the item to the command.") # TODO: add this string to language json
+                case "undelay":
+                    to_do_list.top.undelay_item(command_args[1])
+                case "help":
+                    to_do_list.top.log(HELP_STRING)
+                case "delall":
+                    print(Communication["Are you sure? This cannot be undone. "] + "[y/N]")
+                    if input().lower() == "y":
+                        to_do_list.top.remove_all_items()
+                case "lang":
+                    try:
+                        with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
+                            Communication = json.load(lang_file)[command_args[1]]
+
+                    except FileNotFoundError:
+                        to_do_list.top.log("Missing todolist_lang.json")
+
+                    except KeyError:
+                        to_do_list.top.log(Communication["Language not found."])
+
+                    except IndexError:
+                        with open(LANG_FILE, "r", encoding="utf-8") as lang_file:
+                            languages = ""
+                            for language in json.load(lang_file).keys():
+                                languages += language + "\n"
+                            to_do_list.top.log(languages.strip())
+
+                    else:
+                        try:
+                            with open(SETTINGS_FILE, "r", encoding="utf-8") as settings_file:
+                                settings = json.load(settings_file)
+
+                            settings["language"] = command_args[1]
+
+                            with open(SETTINGS_FILE, "w", encoding="utf-8") as settings_file:
+                                json.dump(settings, settings_file, ensure_ascii=False, indent=4)
+                        except FileNotFoundError:
+                            pass
+
+                case "restore_backup":
+                    print("Are you sure? Changes from this session will be lost. [y/N]")
+                    if input().lower() == 'y':
+                        backup_files = sorted(
+                            [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if f.startswith(TO_DO_ITEMS_SAVE_FILE)],
+                            key=lambda f: os.stat(f).st_mtime, reverse=True)
+
+                        # Restore most recent backup, if it exists
+                        if backup_files:
+                            shutil.copy(backup_files[0], TO_DO_ITEMS_SAVE_FILE)
+                            to_do_list.populate()
+                            print(f"Restored {TO_DO_ITEMS_SAVE_FILE} from backup: {backup_files[0]}")
+                        else:
+                            print("No backups found for", TO_DO_ITEMS_SAVE_FILE)
 
         to_do_list.save()
 
