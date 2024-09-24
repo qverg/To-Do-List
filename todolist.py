@@ -77,6 +77,7 @@ Communication = {
     "Invalid recurrence. Valid:" : "Invalid recurrence. Valid:",
     "Item does not exist." : "Item does not exist.",
     "Today!" : "Today!",
+    "Tommorrow" : "Tomorrow",
     "Has passed!" : "Has passed!",
     "OVERDUE!" : "OVERDUE!",
     "ID" : "ID",
@@ -345,6 +346,8 @@ class ToDoListItem:
         if do_date.year != INVALID_YEAR:
             if do_date == date.today():
                 do_string += Communication["Today!"]
+            elif do_date == date.today()+timedelta(days=1):
+                do_string += Communication["Tomorrow"]
             else:
                 do_string += do_date.strftime(DATE_FORMAT)
                 if do_date < date.today():
@@ -360,6 +363,8 @@ class ToDoListItem:
         if due_date.year != INVALID_YEAR:
             if due_date == date.today():
                 due_string += Communication["Today!"]
+            elif due_date == date.today()+timedelta(days=1):
+                due_string += Communication["Tomorrow"]
             else:
                 due_string += due_date.strftime(DATE_FORMAT)
                 if due_date < date.today():
