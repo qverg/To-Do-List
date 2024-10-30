@@ -493,8 +493,9 @@ class ToDoList:
         return save_dict
 
     def sort(self):
-        self.items.sort(key= lambda x: x.due_date)
-        self.items.sort(key= lambda x: x.do_date)
+        #self.items.sort(key= lambda x: x.due_date)
+        #self.items.sort(key= lambda x: x.do_date)
+        self.items.sort(key= lambda x: min(x.due_date, x.do_date))
 
     def add_item(self, desc=None, id: str=None):
         if id is not None:
