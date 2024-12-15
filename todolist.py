@@ -499,6 +499,8 @@ class ToDoList:
         def natural_sort_key(s, _nsre=re.compile(r'(\d+)')):
             return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s.id)]
         self.items.sort(key = natural_sort_key)
+        self.items.sort(key = lambda x: x.due_date)
+        self.items.sort(key = lambda x: x.do_date)
         self.items.sort(key= lambda x: min(x.due_date, x.do_date))
 
     def add_item(self, desc=None, id: str=None):
