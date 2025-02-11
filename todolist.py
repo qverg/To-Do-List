@@ -24,6 +24,8 @@ SHOW_N_HIDDEN = False
 HELP_STRING = """Commands:
  - Basic:
     > 'add' or '+'              Add a to-do list item
+    > 'add [description]' or    Add an item with the specified description
+      '+ [description]'
     > 'done [ID]'               Mark an item as done (ID is in the leftmost column)
     > 'undo'                    Undo delete or mark as done
     > 'edit [ID]'               Edit an item (just press enter to leave a field as is)
