@@ -31,9 +31,9 @@ HELP_STRING = """Commands:
     > 'edit [ID]'               Edit an item (just press enter to leave a field as is)
     > 'add$$' or '+$$'          Add a to-do list item with a custom ID by replacing $$ with your ID of choice
     > 'hide [ID]'               Hide an item so it only appears 3 days before the do date
+    > 'hide [ID] until [date]'  Hide an item until the specified date
     > 'unhide [ID]'             Unhide a hidden item
     > 'delay [ID] [n]'          Delay showing an item for n days without changing any properties of the item
-    > 'delay [ID] until [date]' Delay showing an item until the specified date without changing any properties of the item
     > 'undelay [ID]'            Remove any delay on an item
  - Sublists
     > 'sub [ID]' or 's [ID]'    Show sublist for an item
@@ -782,9 +782,25 @@ def run_to_do_list():
                 case "edit":
                     to_do_list.top.edit_item(command_args[1])
                 case "hide":
-                    to_do_list.top.hide_item(command_args[1])
+                    if len(command_args) > 2:
+                        if command_args[2] == "until":
+                            try:
+                                until_date = DateHandler.get_date_from_string(command_args[3])
+                                if until_date.year == INVALID_YEAR:
+                                    to_do_list.top.log("Please enter a valid date.")
+                                else:
+                                    days_until = (until_date - date.today()).days
+                                    to_do_list.top.delay_item(command_args[1], days_until)
+                            except IndexError:
+                                to_do_list.top.log("'hide [ID] until' must be followed by a date.")
+                        else:
+                            to_do_list.top.log("Invalid command.")
                 case "unhide":
-                    to_do_list.top.unhide_item(command_args[1])
+                    if to_do_list.top.get_item(command_args[1]).hide_before_relevant == False and \
+                                to_do_list.top.get_item(command_args[1]).delay_to_date != date.today():
+                            to_do_list.top.undelay_item(command_args[1])
+                    else:
+                        to_do_list.top.unhide_item(command_args[1])
                 case "finish":
                     to_do_list.top.finish_recurring_item(command_args[1])
                 case "revert":
@@ -793,20 +809,11 @@ def run_to_do_list():
                     to_do_list.show_all_once()
                 case "delay":
                     try:
-                        if command_args[2] == "until":
-                            until_date = DateHandler.get_date_from_string(command_args[3])
-                            if until_date.year == INVALID_YEAR:
-                                to_do_list.top.log("Please enter a valid date.")
-                            else:
-                                days_until = (until_date - date.today()).days
-                                to_do_list.top.delay_item(command_args[1], days_until)
-                        else:
-                            try:
-                                to_do_list.top.delay_item(command_args[1], int(command_args[2]))
-                            except ValueError:
-                                to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
+                        to_do_list.top.delay_item(command_args[1], int(command_args[2]))
+                    except ValueError:
+                        to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
                     except IndexError:
-                        to_do_list.top.log("Please add a number of days to delay the item to the command or specify a date after 'until'.") # TODO: add this string to language json
+                        to_do_list.top.log("Please add a number of days to delay the item to the command.") # TODO: add this string to language json
                 case "undelay":
                     to_do_list.top.undelay_item(command_args[1])
                 case "help":
