@@ -23,36 +23,36 @@ SHOW_N_HIDDEN = False
 
 HELP_STRING = """Commands:
  - Basic:
-    > 'add' or '+'      Add a to-do list item
-    > 'done [ID]'       Mark an item as done (ID is in the leftmost column)
-    > 'undo'            Undo delete or mark as done
-    > 'edit [ID]'       Edit an item (just press enter to leave a field as is)
-    > 'add$$' or '+$$'  Add a to-do list item with a custom ID by replacing $$ with your ID of choice
-    > 'hide [ID]'       Hide an item so it only appears 3 days before the do date
-    > 'unhide [ID]'     Unhide a hidden item
-    > 'delay [ID] [n]'  Delay showing an item for n days without changing any dates
-    > 'undelay [ID]'    Remove any delay on an item
+    > 'add' or '+'              Add a to-do list item
+    > 'done [ID]'               Mark an item as done (ID is in the leftmost column)
+    > 'undo'                    Undo delete or mark as done
+    > 'edit [ID]'               Edit an item (just press enter to leave a field as is)
+    > 'add$$' or '+$$'          Add a to-do list item with a custom ID by replacing $$ with your ID of choice
+    > 'hide [ID]'               Hide an item so it only appears 3 days before the do date
+    > 'unhide [ID]'             Unhide a hidden item
+    > 'delay [ID] [n]'          Delay showing an item for n days without changing any properties of the item
+    > 'delay [ID] until [date]' Delay showing an item until the specified date without changing any properties of the item
+    > 'undelay [ID]'            Remove any delay on an item
  - Sublists
-    > 'sub [ID]'        Show sublist for an item
-      's [ID]'
-    > 'sub'             Close the current sublist (move up in tree), subitems are saved
-    > 'home'            Go back to the base list - i.e. close all sublists
+    > 'sub [ID]' or 's [ID]'    Show sublist for an item
+    > 'sub'                     Close the current sublist (move up in tree), subitems are saved
+    > 'home'                    Go back to the base list - i.e. close all sublists
  - Recurring items
-    > 'finish [ID]'     Mark a recurring item as finished, in effect deleting it
-    > 'revert [ID]'     Roll a recurring item back to the previous due date (undo mark as done)
-    > 'show'            Show all hidden items (since recurring items with far off due dates are hidden)
- - Meta
-    > 'del [ID]'        Remove an item
-      'remove [ID]'
-      'rm [ID]'
-    > 'help'            Seems like you've found this already :-)
-    > 'delall'          Delete all items
-    > 'q'               Quit
-      'quit'
-      'exit'
-    > 'lang [language]' Change language (requires todolist_lang.json)
-    > 'lang'            Show possible languages
-    > 'restore_backup'  Restore the most recent backups. Five recent backups can be found in the 'backups' folder
+    > 'finish [ID]'             Mark a recurring item as finished, in effect deleting it
+    > 'revert [ID]'             Roll a recurring item back to the previous due date (undo mark as done)
+    > 'show'                    Show all hidden items (since recurring items with far off due dates are hidden)
+ - Meta     
+    > 'del [ID]'                Remove an item
+      'remove [ID]'     
+      'rm [ID]'     
+    > 'help'                    Seems like you've found this already :-)
+    > 'delall'                  Delete all items
+    > 'q'                       Quit
+      'quit'        
+      'exit'        
+    > 'lang [language]'         Change language (requires todolist_lang.json)
+    > 'lang'                    Show possible languages
+    > 'restore_backup'          Restore the most recent backups. Five recent backups can be found in the 'backups' folder
 
 For dates you can use:
  - Day of the week          'saturday'  'sat'
