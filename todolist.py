@@ -791,11 +791,20 @@ def run_to_do_list():
                     to_do_list.show_all_once()
                 case "delay":
                     try:
-                        to_do_list.top.delay_item(command_args[1], int(command_args[2]))
-                    except ValueError:
-                        to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
+                        if command_args[2] == "until":
+                            until_date = DateHandler.get_date_from_string(command_args[3])
+                            if until_date.year == INVALID_YEAR:
+                                to_do_list.top.log("Please enter a valid date.")
+                            else:
+                                days_until = (until_date - date.today()).days
+                                to_do_list.top.delay_item(command_args[1], days_until)
+                        else:
+                            try:
+                                to_do_list.top.delay_item(command_args[1], int(command_args[2]))
+                            except ValueError:
+                                to_do_list.top.log("Number of days to delay must be an integer!")   # TODO: add this string to language json
                     except IndexError:
-                        to_do_list.top.log("Please add a number of days to delay the item to the command.") # TODO: add this string to language json
+                        to_do_list.top.log("Please add a number of days to delay the item to the command or specify a date after 'until'.") # TODO: add this string to language json
                 case "undelay":
                     to_do_list.top.undelay_item(command_args[1])
                 case "help":
