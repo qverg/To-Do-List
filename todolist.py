@@ -795,6 +795,8 @@ def run_to_do_list():
                                 to_do_list.top.log("'hide [ID] until' must be followed by a date.")
                         else:
                             to_do_list.top.log("Invalid command.")
+                    else:
+                        to_do_list.top.hide_item(command_args[1])
                 case "unhide":
                     if to_do_list.top.get_item(command_args[1]).hide_before_relevant == False and \
                                 to_do_list.top.get_item(command_args[1]).delay_to_date != date.today():
