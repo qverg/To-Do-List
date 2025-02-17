@@ -391,8 +391,10 @@ class ToDoListItem:
         if not in_hierarchy:
             out += "\n"
             if self.sublist.items:
-                prefix = "   "*generation + "->"
-                out += TextFormatting.columnize(["","   "*generation + f"-> ... ({len(self.sublist.items)})","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
+                num_unhidden_subitems = len(self.sublist.items) - self.sublist.get_num_hidden_items()
+                if num_unhidden_subitems > 0:
+                    prefix = "   "*generation + "->"
+                    out += TextFormatting.columnize(["","   "*generation + f"-> ... ({num_unhidden_subitems})","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
         return out
 
     @property
@@ -422,6 +424,16 @@ class ToDoListItem:
 
         if self.recurrence == Recurrence.min:
             self.recurrence = None
+
+    def get_hidden(self):
+        delay_me = self.delay_to_date > date.today()
+        if ((self.recurrence is None and not self.hide_before_relevant) \
+            or self.do_date - timedelta(days=2) <= date.today() \
+            or self.due_date - timedelta(days=3) <= date.today()) \
+            and not delay_me:
+            return False
+        else:
+            return True
 
 class ToDoList:
     def __init__(self, save_dict: dict):
@@ -628,6 +640,14 @@ class ToDoList:
         if item is not None:
             item.undelay()
 
+    def get_num_hidden_items(self):
+        num_hidden_items = 0
+        for to_do_item in self.items:
+            if to_do_item.get_hidden():
+                num_hidden_items += 1
+        return num_hidden_items
+
+
 class ToDoListManager:
     def __init__(self) -> None:
         self._base: ToDoList = None
@@ -713,10 +733,7 @@ class ToDoListManager:
             
             if self._show_all:
                 print(to_do_item.to_string(generation))
-            elif ((to_do_item.recurrence is None and not to_do_item.hide_before_relevant) \
-                or to_do_item.do_date - timedelta(days=2) <= date.today() \
-                or to_do_item.due_date - timedelta(days=3) <= date.today()) \
-                and not delay_item:
+            elif not to_do_item.get_hidden():
                 print(to_do_item.to_string(generation))
             else:
                 hidden_items += 1
