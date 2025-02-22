@@ -327,7 +327,7 @@ class ToDoListItem:
 
         self.update_inherited_data()
 
-    def to_string(self, generation=0, in_hierarchy=False):
+    def to_string(self, generation=0, in_hierarchy=False, count_hidden_subitems=False):
         connective = " -- "
 
         id_string = self.id if not in_hierarchy else ""
@@ -393,7 +393,9 @@ class ToDoListItem:
         if not in_hierarchy:
             out += "\n"
             if self.sublist.items:
-                num_unhidden_subitems = len(self.sublist.items) - self.sublist.get_num_hidden_items()
+                num_unhidden_subitems = len(self.sublist.items)
+                if not count_hidden_subitems:
+                    num_unhidden_subitems -= self.sublist.get_num_hidden_items()
                 if num_unhidden_subitems > 0:
                     prefix = "   "*generation + "->"
                     out += TextFormatting.columnize(["","   "*generation + f"-> ... ({num_unhidden_subitems})","","",""], COLUMN_LENGTHS, PADDING, end_newline=True)
@@ -712,7 +714,7 @@ class ToDoListManager:
         
         generation = 0
         for parent_item in self._stack:
-            print(parent_item.to_string(generation, True))
+            print(parent_item.to_string(generation, in_hierarchy=True))
             generation += 1
         
         tasks_today = False
@@ -740,7 +742,7 @@ class ToDoListManager:
             #    hidden_items += 1
             
             if self._show_all or NEVER_HIDE:
-                print(to_do_item.to_string(generation))
+                print(to_do_item.to_string(generation, count_hidden_subitems=True))
             elif not to_do_item.get_hidden():
                 print(to_do_item.to_string(generation))
             else:
