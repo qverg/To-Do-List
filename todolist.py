@@ -20,6 +20,7 @@ COLUMN_LENGTHS = (3, 49, 25, 25, 12)
 PADDING = 3
 
 SHOW_N_HIDDEN = False
+NEVER_HIDE = False
 
 HELP_STRING = """Commands:
  - Basic:
@@ -641,6 +642,8 @@ class ToDoList:
             item.undelay()
 
     def get_num_hidden_items(self):
+        if NEVER_HIDE:
+            return 0
         num_hidden_items = 0
         for to_do_item in self.items:
             if to_do_item.get_hidden():
@@ -731,7 +734,7 @@ class ToDoListManager:
             #if delay_item and not self._show_all:
             #    hidden_items += 1
             
-            if self._show_all:
+            if self._show_all or NEVER_HIDE:
                 print(to_do_item.to_string(generation))
             elif not to_do_item.get_hidden():
                 print(to_do_item.to_string(generation))
@@ -924,6 +927,7 @@ if __name__ == '__main__':
                 PADDING = settings["column_padding_in_characters"]
                 LANGUAGE = settings["language"]
                 SHOW_N_HIDDEN = settings["show_number_of_hidden_items"]
+                NEVER_HIDE = settings["never_hide_items"]
             except KeyError:
                 pass
     except FileNotFoundError:

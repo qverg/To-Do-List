@@ -8,5 +8,6 @@
     ],
     "column_padding_in_characters": 3,
     "language": "English",
-    "show_number_of_hidden_items": true
+    "show_number_of_hidden_items": true,
+    "never_hide_items": false
 }
