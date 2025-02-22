@@ -9,5 +9,6 @@
     "column_padding_in_characters": 3,
     "language": "English",
     "show_number_of_hidden_items": true,
-    "never_hide_items": false
+    "never_hide_items": false,
+    "hide_recurring_items_before_relevant": true
 }

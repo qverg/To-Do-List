@@ -21,6 +21,7 @@ PADDING = 3
 
 SHOW_N_HIDDEN = False
 NEVER_HIDE = False
+HIDE_RECURRING_ITEMS_BEFORE_RELEVANT = True
 
 HELP_STRING = """Commands:
  - Basic:
@@ -428,13 +429,17 @@ class ToDoListItem:
 
     def get_hidden(self):
         delay_me = self.delay_to_date > date.today()
-        if ((self.recurrence is None and not self.hide_before_relevant) \
-            or self.do_date - timedelta(days=2) <= date.today() \
-            or self.due_date - timedelta(days=3) <= date.today()) \
-            and not delay_me:
-            return False
-        else:
+
+        if delay_me:
             return True
+        if self.recurrence is None and not self.hide_before_relevant:   # not recurring and not hidden
+            return False
+        if self.recurrence is not None and not HIDE_RECURRING_ITEMS_BEFORE_RELEVANT:    # recurring but recurring items set to not autohide
+            return False
+        if self.do_date - timedelta(days=2) <= date.today() or self.due_date - timedelta(days=3) <= date.today():   # too close to do/due date to hide (i.e. item is relevant)
+            return False
+
+        return True
 
 class ToDoList:
     def __init__(self, save_dict: dict):
@@ -928,6 +933,7 @@ if __name__ == '__main__':
                 LANGUAGE = settings["language"]
                 SHOW_N_HIDDEN = settings["show_number_of_hidden_items"]
                 NEVER_HIDE = settings["never_hide_items"]
+                HIDE_RECURRING_ITEMS_BEFORE_RELEVANT = settings["hide_recurring_items_before_relevant"]
             except KeyError:
                 pass
     except FileNotFoundError:
