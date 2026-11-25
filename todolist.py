@@ -587,8 +587,10 @@ class ToDoList:
         item = self.get_item(id)
         if item is not None:
             if item.own_recurrence is not None:
-                item.own_do_date += Recurrence.to_timedelta[item.own_recurrence]
-                item.own_due_date += Recurrence.to_timedelta[item.own_recurrence]
+                if item.own_do_date.year != INVALID_YEAR:
+                    item.own_do_date += Recurrence.to_timedelta[item.own_recurrence]
+                if item.own_due_date.year != INVALID_YEAR:
+                    item.own_due_date += Recurrence.to_timedelta[item.own_recurrence]
                 self.sort()
             else:
                 self.remove_item(id)
