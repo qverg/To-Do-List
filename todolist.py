@@ -69,6 +69,7 @@ The program will not complain if you do this wrong so beware. You can always edi
 Possible recurrences are:
  - 'daily'
  - 'weekly'
+ - 'biweekly'
  - 'monthly'    (possibly a little dodgy but should work ok)
 
 """
@@ -88,6 +89,7 @@ Communication = {
     "ID" : "ID",
     "Are you sure? This cannot be undone. " : "Are you sure? This cannot be undone. ",
     "weekly" : "weekly",
+    "biweekly" : "biweekly",
     "monthly" : "monthly",
     "daily" : "daily",
     "Language not found." : "Language not found."
@@ -135,13 +137,15 @@ class TextFormatting:
         return out
 
 class Recurrence:
-    WEEKLY = 2      # \
+    WEEKLY = 3      # \
     MONTHLY = 1     #  |- ordering of numbers is important! do not change!
-    DAILY = 3       # /
+    DAILY = 4       # /
+    BIWEEKLY = 2    ### TO DO: check if this makes sense
     min = -1000     # only use in temp variables
 
     to_timedelta = {
         WEEKLY : timedelta(weeks=1),
+        BIWEEKLY : timedelta(weeks=2),
         MONTHLY : timedelta(days=monthrange(date.today().year, date.today().month)[1]),
         DAILY : timedelta(days=1)
     }
@@ -149,18 +153,20 @@ class Recurrence:
     @staticmethod
     def from_text(rec_in: str):
         if rec_in == Communication["weekly"] : return Recurrence.WEEKLY
+        if rec_in == Communication["biweekly"] : return Recurrence.BIWEEKLY
         if rec_in == Communication["monthly"] : return Recurrence.MONTHLY
         if rec_in == Communication["daily"] : return Recurrence.DAILY
         return None
 
     @staticmethod
     def get_valid():
-        return Communication["weekly"], Communication["monthly"], Communication["daily"], "None", ""
+        return Communication["weekly"], Communication["biweekly"], Communication["monthly"], Communication["daily"], "None", ""
 
     @staticmethod
     def to_text(rec_in):
         match rec_in:
             case Recurrence.WEEKLY : return Communication["weekly"]
+            case Recurrence.BIWEEKLY : return Communication["biweekly"]
             case Recurrence.MONTHLY : return Communication["monthly"]
             case Recurrence.DAILY : return Communication["daily"]
         return "None"
@@ -581,8 +587,10 @@ class ToDoList:
         item = self.get_item(id)
         if item is not None:
             if item.own_recurrence is not None:
-                item.own_do_date += Recurrence.to_timedelta[item.own_recurrence]
-                item.own_due_date += Recurrence.to_timedelta[item.own_recurrence]
+                if item.own_do_date.year != INVALID_YEAR:
+                    item.own_do_date += Recurrence.to_timedelta[item.own_recurrence]
+                if item.own_due_date.year != INVALID_YEAR:
+                    item.own_due_date += Recurrence.to_timedelta[item.own_recurrence]
                 self.sort()
             else:
                 self.remove_item(id)
